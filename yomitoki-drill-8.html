@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>よみときドリルAI</title>
+<style>
+  :root{
+    --night:#1b2444; --night2:#26315c; --panel:#f4f7fd; --panel2:#e7eef9;
+    --lamp:#f6b53f; --lamp-deep:#df8a24; --fox:#c85a3a;
+    --frost:#a6b8dc; --ink:#242a3a; --ink2:#5a6480; --line:#d3ddef;
+    --good:#3fae7a; --bad:#d1553f; --mid:#e0a52b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--night); color:var(--ink);
+    font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","Yu Gothic",YuGothic,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.7;
+  }
+  .wrap{max-width:560px;margin:0 auto;min-height:100vh;background:var(--night);position:relative;overflow-x:hidden}
+
+  .sky{position:fixed;inset:0;max-width:560px;margin:0 auto;pointer-events:none;z-index:0;overflow:hidden}
+  .glow{position:absolute;top:-80px;right:-40px;width:280px;height:280px;border-radius:50%;
+    background:radial-gradient(circle,rgba(246,181,63,.28),rgba(246,181,63,0) 70%)}
+  .snow{position:absolute;top:-10px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.75);
+    animation:fall linear infinite}
+  @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:0}
+    10%{opacity:.9}100%{transform:translateY(105vh) translateX(24px);opacity:.2}}
+  @media (prefers-reduced-motion: reduce){.snow{display:none}}
+
+  header{position:relative;z-index:2;padding:22px 20px 14px;text-align:center}
+  .homebtn{position:absolute;top:18px;right:16px;width:38px;height:38px;border-radius:50%;
+    border:1.5px solid rgba(166,184,220,.4);background:rgba(255,255,255,.08);color:var(--lamp);
+    font-size:17px;cursor:pointer;z-index:5}
+  .kicker{color:var(--lamp);font-size:12px;letter-spacing:.28em;font-weight:700}
+  h1{margin:4px 0 0;color:#fff;font-size:26px;letter-spacing:.06em;
+     font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-weight:700}
+  .sub{color:var(--frost);font-size:12.5px;margin-top:4px}
+
+  main{position:relative;z-index:2;padding:0 14px 96px}
+  .card{background:var(--panel);border-radius:20px;padding:20px;margin:14px 0;
+    box-shadow:0 10px 30px rgba(10,15,35,.35)}
+  .card.tight{padding:16px}
+
+  .modewrap{padding:34px 8px}
+  .modeq{color:#fff;text-align:center;font-size:19px;margin-bottom:6px;
+     font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+  .modehint{color:var(--frost);text-align:center;font-size:12.5px;margin-bottom:20px}
+  .modebtn{display:block;width:100%;border:none;border-radius:18px;padding:20px;margin:12px 0;
+    text-align:left;cursor:pointer;font-size:17px;font-weight:700;color:var(--ink);
+    background:var(--panel);box-shadow:0 8px 22px rgba(10,15,35,.3)}
+  .modebtn:active{transform:scale(.98)}
+  .modebtn small{display:block;font-weight:400;color:var(--ink2);font-size:12.5px;margin-top:4px}
+  .modebtn .em{font-size:26px;margin-right:8px;vertical-align:-2px}
+
+  .tabs{display:flex;background:rgba(255,255,255,.06);border-radius:14px;padding:4px;margin:0 0 6px;gap:4px}
+  .tab{flex:1;border:none;background:none;color:var(--frost);padding:10px 0;border-radius:10px;
+    font-size:12.5px;cursor:pointer;font-weight:700}
+  .tab.on{background:var(--panel);color:var(--ink)}
+  .page{display:none}.page.on{display:block}
+
+  .textmode{display:flex;background:var(--panel2);border-radius:11px;padding:4px;margin-bottom:12px;gap:4px}
+  .tm{flex:1;border:none;background:none;padding:8px 0;border-radius:8px;font-size:12px;
+    font-weight:700;color:var(--ink2);cursor:pointer}
+  .tm.on{background:#fff;color:var(--lamp-deep);box-shadow:0 2px 5px rgba(0,0,0,.08)}
+  .story{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:16.5px;line-height:2.05;
+    color:#2a2419;letter-spacing:.02em}
+  .story p{margin:0 0 15px;text-indent:1em}
+  .story.nofuri rt{display:none}
+  ruby rt{font-size:.52em;color:var(--fox);font-family:sans-serif;font-weight:400}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--ink2);
+    cursor:pointer;font-weight:600}
+  .pill.act{background:var(--lamp);border-color:var(--lamp);color:#3a2a05}
+
+  /* ---- 段落進捗 ---- */
+  .segbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .segtag{font-size:12.5px;color:var(--ink2);font-weight:700}
+  .segdots{display:flex;gap:4px;flex-wrap:wrap;max-width:60%}
+  .segdot{width:9px;height:9px;border-radius:50%;background:var(--line)}
+  .segdot.done{background:var(--lamp)}
+  .segdot.now{background:var(--fox)}
+
+  .steplabel{display:inline-block;background:var(--night2);color:var(--frost);font-size:11px;
+    font-weight:700;padding:4px 11px;border-radius:999px;letter-spacing:.06em;margin-bottom:10px}
+  .segquote{background:var(--panel2);border-left:4px solid var(--lamp);border-radius:0 12px 12px 0;
+    padding:12px 14px;margin:6px 0 14px;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    font-size:15px;color:#333;line-height:1.9}
+  .qtext{font-size:17.5px;font-weight:700;margin:4px 0 14px;line-height:1.6}
+
+  .choicebtn{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:#fff;
+    border-radius:14px;padding:14px;margin:9px 0;font-size:15.5px;cursor:pointer;font-weight:600;color:var(--ink)}
+  .choicebtn.correct{border-color:var(--good);background:#eef9f2}
+  .choicebtn.wrong{border-color:var(--bad);background:#fdecec}
+  .choicebtn:disabled{cursor:default}
+  .fbmark{font-weight:800;margin-right:4px}
+
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;
+    font-weight:700;cursor:pointer}
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:var(--lamp);color:#3a2a05}
+  .btn.ghost{background:var(--panel2);color:var(--ink2)}
+  .btn:disabled{opacity:.5}
+
+  .revealbox{background:#fff8ea;border:1.5px dashed var(--lamp-deep);border-radius:16px;padding:16px;margin-bottom:14px}
+  .revealbox h4{margin:0 0 8px;font-size:13px;color:var(--lamp-deep);letter-spacing:.05em}
+  .revealline{font-size:14.5px;margin:4px 0}
+  .revealline b{color:var(--fox)}
+
+  .fb{background:var(--panel2);border-radius:14px;padding:14px;font-size:14px;margin-top:12px;line-height:1.8}
+
+  /* ---- 成長/認定証 ---- */
+  .stat{display:flex;gap:10px;margin-bottom:14px}
+  .statbox{flex:1;background:var(--night2);border-radius:16px;padding:14px;text-align:center;color:#fff}
+  .statbox .n{font-size:26px;font-weight:800;color:var(--lamp);font-family:"Hiragino Mincho ProN",serif}
+  .statbox .l{font-size:11px;color:var(--frost);margin-top:2px}
+  .caldots{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .dot{width:13px;height:13px;border-radius:4px;background:var(--panel2)}
+  .dot.hit{background:var(--lamp)}
+  .skillrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .skillchip{background:var(--panel2);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--ink2);font-weight:700}
+  .skillchip b{color:var(--fox)}
+
+  .certwrap{padding:20px 6px}
+  .cert{background:linear-gradient(160deg,#fff8ea,#fff0d0);border:3px double var(--lamp-deep);
+    border-radius:18px;padding:26px 20px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+  .cert .cicon{font-size:38px}
+  .cert h2{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:#8a5a12;font-size:22px;margin:6px 0 2px}
+  .cert .clevel{font-size:15px;color:var(--fox);font-weight:700;margin-bottom:14px}
+  .cert p{font-size:13.5px;color:#6b4e12;line-height:1.9;margin:0}
+  .cert .csign{margin-top:16px;font-size:12px;color:#a07530}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;
+    background:#111a33;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;
+    opacity:0;transition:opacity .3s;max-width:88%;text-align:center}
+  .toast.show{opacity:1}
+  .spin{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .foot{color:var(--frost);font-size:10.5px;text-align:center;padding:4px 20px 0;line-height:1.6}
+  a.link{color:var(--lamp);cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sky"><div class="glow"></div><div id="snowfield"></div></div>
+
+  <!-- モード選択 -->
+  <div id="modeScreen" class="modewrap" style="display:none">
+    <header style="padding-top:8px">
+      <div class="kicker">YOMITOKI DRILL</div>
+      <h1>よみとき<br>ドリルAI</h1>
+      <div class="sub">ひとつの物語を、場面ごとに読み解く</div>
+    </header>
+    <div style="margin-top:24px">
+      <div class="modeq">どちらで はじめますか？</div>
+      <div class="modehint">あとから せってい で かえられます</div>
+      <button class="modebtn" onclick="setMode('kids')">
+        <span class="em">🦊</span>小学1・2年生
+        <small>ふりがな・音読つき。やさしいことばで、ほめながら</small>
+      </button>
+      <button class="modebtn" onclick="setMode('adult')">
+        <span class="em">📖</span>大人の学び直し
+        <small>やや踏み込んだ設問・講評つき</small>
+      </button>
+    </div>
+    <div class="foot" style="margin-top:20px">
+      本文は新美南吉『手袋を買いに』（パブリックドメイン）。<br>
+      レベル1：物語を通して読み、あらすじをつかむ段階。
+    </div>
+  </div>
+
+  <!-- アプリ本体 -->
+  <div id="app" style="display:none">
+    <header>
+      <button class="homebtn" onclick="changeMode()" title="モード切替・ホーム">⛩️</button>
+      <div class="kicker" id="hdKicker">YOMITOKI DRILL</div>
+      <h1 id="hdTitle">手袋を買いに</h1>
+      <div class="sub" id="hdSub">新美南吉 ・ よみとき<span id="hdMode"></span></div>
+    </header>
+
+    <main>
+      <div class="tabs">
+        <button class="tab on" data-p="Story" onclick="go('Story')">📖 本文</button>
+        <button class="tab" data-p="Quiz" onclick="go('Quiz')">✏️ 場面の1問</button>
+        <button class="tab" data-p="Grow" onclick="go('Grow')">🌱 成長</button>
+      </div>
+
+      <!-- 本文 -->
+      <div id="pageStory" class="page on">
+        <div class="card">
+          <div class="textmode">
+            <button class="tm" data-m="furi" onclick="setTextMode('furi')">漢字＋ふりがな</button>
+            <button class="tm" data-m="kanji" onclick="setTextMode('kanji')">漢字のみ</button>
+            <button class="tm" data-m="hira" onclick="setTextMode('hira')">ひらがな</button>
+          </div>
+          <div class="pillrow">
+            <span class="pill" id="ttsPill" onclick="toggleTTS()">🔊 音読</span>
+          </div>
+          <div class="story" id="storyBody"></div>
+        </div>
+      </div>
+
+      <!-- 場面の1問(段落フロー) -->
+      <div id="pageQuiz" class="page">
+        <div class="card" id="quizCard">
+          <div class="segbar">
+            <span class="segtag" id="segTag">場面 1／16</span>
+            <div class="segdots" id="segDots"></div>
+          </div>
+          <div id="quizBody"><!-- JSで描画 --></div>
+        </div>
+      </div>
+
+      <!-- 成長 -->
+      <div id="pageGrow" class="page">
+        <div id="growNormal">
+          <div class="card">
+            <div class="stat">
+              <div class="statbox"><div class="n" id="gStreak">0</div><div class="l">連続日数</div></div>
+              <div class="statbox"><div class="n" id="gSeg">0</div><div class="l">終えた場面</div></div>
+              <div class="statbox"><div class="n" id="gTotalSeg">16</div><div class="l">全場面</div></div>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:4px">この1か月</div>
+            <div class="caldots" id="calDots"></div>
+          </div>
+          <div class="card">
+            <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:4px">出会った読み方</div>
+            <div class="skillrow" id="skillRow"></div>
+          </div>
+        </div>
+        <div id="growCert" style="display:none"></div>
+        <div class="card tight">
+          <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px">記録の持ち出し</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost" onclick="doExport()" style="margin:0">⬇︎ 書き出す</button>
+            <button class="btn ghost" onclick="document.getElementById('impf').click()" style="margin:0">⬆︎ 読み込む</button>
+          </div>
+          <input type="file" id="impf" accept="application/json" style="display:none" onchange="doImport(event)">
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   よみときドリルAI v2 — レベル1(段落フロー型)
+   ============================================================ */
+
+var AI_URL = "https://us-central1-kensetsu-nippo-842a2.cloudfunctions.net/askAI";
+var AI_KEY = "HeartsHouse2026Key";
+
+function extractGeminiText(d){
+  if(!d) return "";
+  return (d.data && d.data.candidates && d.data.candidates[0] &&
+          d.data.candidates[0].content && d.data.candidates[0].content.parts &&
+          d.data.candidates[0].content.parts[0] && d.data.candidates[0].content.parts[0].text)
+      || (d.data && d.data.text)
+      || (d.candidates && d.candidates[0] && d.candidates[0].content &&
+          d.candidates[0].content.parts && d.candidates[0].content.parts[0] &&
+          d.candidates[0].content.parts[0].text)
+      || d.text || "";
+}
+function askAI(prompt, schema, cb){
+  var body = { prompt: prompt, model: "gemini-2.5-flash" };
+  if(schema) body.responseSchema = schema;
+  var httpStatus=null;
+  fetch(AI_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "x-access-key":AI_KEY },
+    body: JSON.stringify(body)
+  }).then(function(r){ httpStatus=r.status; return r.text(); })
+    .then(function(raw){
+      var d;
+      try{ d=JSON.parse(raw); }
+      catch(e){ cb("HTTP "+httpStatus+"：サーバーの返事がJSONではありません → "+raw.slice(0,200), null); return; }
+      if(d && d.success===false){ cb("HTTP "+httpStatus+"："+(d.error||"AIエラー"), null); return; }
+      var t=extractGeminiText(d);
+      if(!t){ cb("HTTP "+httpStatus+"：AIから空の返事 → "+JSON.stringify(d).slice(0,200), null); return; }
+      cb(null, parseJson(t));
+    })
+    .catch(function(e){ cb("通信自体に失敗（"+e.message+"）", null); });
+}
+function parseJson(t){
+  var s=String(t).replace(/```json/gi,"").replace(/```/g,"").trim();
+  try{ return JSON.parse(s); }
+  catch(e){
+    var a=s.indexOf("{"), b=s.lastIndexOf("}");
+    if(a>=0 && b>a){ try{ return JSON.parse(s.slice(a,b+1)); }catch(e2){} }
+    return { _raw:s };
+  }
+}
+
+/* ============================================================
+   本文(段落＝場面、そのままSEGMENTSとして使う)
+   ============================================================ */
+var BOOK = {
+  title:"手袋を買いに",
+  author:"新美南吉",
+  paras:[
+    "<ruby>寒<rt>さむ</rt></ruby>い<ruby>冬<rt>ふゆ</rt></ruby>が<ruby>北方<rt>ほっぽう</rt></ruby>から、<ruby>狐<rt>きつね</rt></ruby>の<ruby>親子<rt>おやこ</rt></ruby>の<ruby>棲<rt>す</rt></ruby>んでいる<ruby>森<rt>もり</rt></ruby>へもやって<ruby>来<rt>き</rt></ruby>ました。",
+    "ある<ruby>朝<rt>あさ</rt></ruby>、<ruby>洞穴<rt>ほらあな</rt></ruby>から<ruby>子供<rt>こども</rt></ruby>の<ruby>狐<rt>きつね</rt></ruby>が<ruby>出<rt>で</rt></ruby>ようとしましたが、「あっ」と<ruby>叫<rt>さけ</rt></ruby>んで<ruby>眼<rt>め</rt></ruby>を<ruby>抑<rt>おさ</rt></ruby>えながら<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>のところへころげて<ruby>来<rt>き</rt></ruby>ました。「<ruby>母<rt>かあ</rt></ruby>ちゃん、<ruby>眼<rt>め</rt></ruby>になにか<ruby>刺<rt>さ</rt></ruby>さった、<ruby>抜<rt>ぬ</rt></ruby>いてちょうだい<ruby>早<rt>はや</rt></ruby>く<ruby>早<rt>はや</rt></ruby>く」と<ruby>言<rt>い</rt></ruby>いました。",
+    "<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>がびっくりして、あわてふためきながら<ruby>眼<rt>め</rt></ruby>を<ruby>抑<rt>おさ</rt></ruby>えている<ruby>子供<rt>こども</rt></ruby>の<ruby>手<rt>て</rt></ruby>を<ruby>恐<rt>おそ</rt></ruby>る<ruby>恐<rt>おそ</rt></ruby>るとりのけて<ruby>見<rt>み</rt></ruby>ましたが、<ruby>何<rt>なに</rt></ruby>も<ruby>刺<rt>さ</rt></ruby>さってはいませんでした。<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>は<ruby>洞穴<rt>ほらあな</rt></ruby>の<ruby>入口<rt>いりぐち</rt></ruby>から<ruby>外<rt>そと</rt></ruby>へ<ruby>出<rt>で</rt></ruby>て<ruby>見<rt>み</rt></ruby>て、はじめてわかりました。<ruby>昨夜<rt>ゆうべ</rt></ruby>のうちに<ruby>雪<rt>ゆき</rt></ruby>がふったのです。その<ruby>雪<rt>ゆき</rt></ruby>の<ruby>上<rt>うえ</rt></ruby>からお<ruby>陽<rt>ひ</rt></ruby>さまがきらきらと<ruby>照<rt>て</rt></ruby>らしていたので、<ruby>雪<rt>ゆき</rt></ruby>は<ruby>眼<rt>め</rt></ruby>もくらむほど<ruby>反射<rt>はんしゃ</rt></ruby>していたのです。",
+    "<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>雪<rt>ゆき</rt></ruby>あかりが<ruby>眩<rt>まぶ</rt></ruby>しかったのでした。しばらくすると、<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>遊<rt>あそ</rt></ruby>びに<ruby>出<rt>で</rt></ruby>かけました。<ruby>真綿<rt>まわた</rt></ruby>のように<ruby>柔<rt>やわ</rt></ruby>らかい<ruby>雪<rt>ゆき</rt></ruby>の<ruby>上<rt>うえ</rt></ruby>を<ruby>駆<rt>か</rt></ruby>けまわると、<ruby>雪<rt>ゆき</rt></ruby>の<ruby>粉<rt>こな</rt></ruby>がしぶきのように<ruby>飛<rt>と</rt></ruby>び<ruby>散<rt>ち</rt></ruby>って、<ruby>小<rt>ちい</rt></ruby>さい<ruby>虹<rt>にじ</rt></ruby>がすっと<ruby>映<rt>うつ</rt></ruby>るのでした。",
+    "やがて<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>母<rt>かあ</rt></ruby>さんぎつねのところへ<ruby>帰<rt>かえ</rt></ruby>って<ruby>来<rt>き</rt></ruby>て、「お<ruby>母<rt>かあ</rt></ruby>ちゃん、お<ruby>手<rt>て</rt></ruby>々が<ruby>冷<rt>つめ</rt></ruby>たい、お<ruby>手<rt>て</rt></ruby>々がちんちんする」と<ruby>言<rt>い</rt></ruby>って、<ruby>濡<rt>ぬ</rt></ruby>れて<ruby>牡丹<rt>ぼたん</rt></ruby><ruby>色<rt>いろ</rt></ruby>になった<ruby>両手<rt>りょうて</rt></ruby>を<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>の<ruby>前<rt>まえ</rt></ruby>に<ruby>差<rt>さ</rt></ruby>し<ruby>出<rt>だ</rt></ruby>しました。<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>はその<ruby>手<rt>て</rt></ruby>に<ruby>息<rt>いき</rt></ruby>をふっと<ruby>吹<rt>ふ</rt></ruby>きかけて、<ruby>温<rt>あたた</rt></ruby>かい<ruby>母<rt>かあ</rt></ruby>さんの<ruby>手<rt>て</rt></ruby>で<ruby>包<rt>つつ</rt></ruby>んでやりながら、「もうすぐあったかくなるよ、<ruby>雪<rt>ゆき</rt></ruby>をさわると、すぐあったかくなるものだよ」と<ruby>言<rt>い</rt></ruby>いましたが、かあいい<ruby>坊<rt>ぼう</rt></ruby>やの<ruby>手<rt>て</rt></ruby>に、<ruby>霜焼<rt>しもや</rt></ruby>けができてはかわいそうだから、<ruby>夜<rt>よる</rt></ruby>になったら<ruby>町<rt>まち</rt></ruby>まで<ruby>行<rt>い</rt></ruby>って、<ruby>坊<rt>ぼう</rt></ruby>やのお<ruby>手<rt>て</rt></ruby>々に<ruby>合<rt>あ</rt></ruby>うような<ruby>毛糸<rt>けいと</rt></ruby>の<ruby>手袋<rt>てぶくろ</rt></ruby>を<ruby>買<rt>か</rt></ruby>ってやろうと<ruby>思<rt>おも</rt></ruby>いました。",
+    "<ruby>暗<rt>くら</rt></ruby>い<ruby>暗<rt>くら</rt></ruby>い<ruby>夜<rt>よる</rt></ruby>が<ruby>風呂敷<rt>ふろしき</rt></ruby>のような<ruby>影<rt>かげ</rt></ruby>をひろげて<ruby>野原<rt>のはら</rt></ruby>や<ruby>森<rt>もり</rt></ruby>を<ruby>包<rt>つつ</rt></ruby>みにやって<ruby>来<rt>き</rt></ruby>ましたが、<ruby>雪<rt>ゆき</rt></ruby>はあまり<ruby>白<rt>しろ</rt></ruby>いので、<ruby>包<rt>つつ</rt></ruby>んでも<ruby>包<rt>つつ</rt></ruby>んでも<ruby>白<rt>しろ</rt></ruby>く<ruby>浮<rt>う</rt></ruby>かびあがっていました。",
+    "<ruby>親子<rt>おやこ</rt></ruby>の<ruby>狐<rt>きつね</rt></ruby>は<ruby>洞穴<rt>ほらあな</rt></ruby>から<ruby>出<rt>で</rt></ruby>ました。<ruby>子供<rt>こども</rt></ruby>の<ruby>方<rt>ほう</rt></ruby>はお<ruby>母<rt>かあ</rt></ruby>さんのお<ruby>腹<rt>なか</rt></ruby>の<ruby>下<rt>した</rt></ruby>にもぐりこんで、そこからまん<ruby>丸<rt>まる</rt></ruby>な<ruby>眼<rt>め</rt></ruby>をあちらこちらへ<ruby>動<rt>うご</rt></ruby>かしながら<ruby>歩<rt>ある</rt></ruby>いていきました。やがて<ruby>一<rt>ひと</rt></ruby>つの<ruby>灯<rt>あかり</rt></ruby>が<ruby>見<rt>み</rt></ruby>え<ruby>始<rt>はじ</rt></ruby>めました。それを<ruby>子狐<rt>こぎつね</rt></ruby>が<ruby>見<rt>み</rt></ruby>つけて、「お<ruby>母<rt>かあ</rt></ruby>ちゃん、お<ruby>星<rt>ほし</rt></ruby>さまはあんな<ruby>低<rt>ひく</rt></ruby>いところにも<ruby>落<rt>お</rt></ruby>ちてるのねえ」と<ruby>尋<rt>たず</rt></ruby>ねました。「あれはお<ruby>星<rt>ほし</rt></ruby>さまじゃないのよ」と<ruby>言<rt>い</rt></ruby>いかけて<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>は、その<ruby>灯<rt>あかり</rt></ruby>を<ruby>見<rt>み</rt></ruby>て、ぶるぶるふるえました。",
+    "「お<ruby>母<rt>かあ</rt></ruby>ちゃん、なにが<ruby>落<rt>お</rt></ruby>ちてるの」と<ruby>今<rt>いま</rt></ruby>まで<ruby>暖<rt>あたた</rt></ruby>かい<ruby>母<rt>かあ</rt></ruby>さんの<ruby>懐<rt>ふところ</rt></ruby>にいた<ruby>子狐<rt>こぎつね</rt></ruby>は、その<ruby>灯<rt>あかり</rt></ruby>の<ruby>方<rt>ほう</rt></ruby>へ<ruby>手<rt>て</rt></ruby>をさしのべました。<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>は、<ruby>以前<rt>いぜん</rt></ruby>、ある<ruby>友達<rt>ともだち</rt></ruby>の<ruby>狐<rt>きつね</rt></ruby>が、<ruby>人間<rt>にんげん</rt></ruby>に<ruby>捕<rt>つか</rt></ruby>まりそうになったことを<ruby>思<rt>おも</rt></ruby>い<ruby>出<rt>だ</rt></ruby>して、どうしても<ruby>町<rt>まち</rt></ruby>まで<ruby>足<rt>あし</rt></ruby>が<ruby>進<rt>すす</rt></ruby>まないのでした。",
+    "そこで、しかたなしに、<ruby>坊<rt>ぼう</rt></ruby>やだけを<ruby>一人<rt>ひとり</rt></ruby>で<ruby>町<rt>まち</rt></ruby>まで<ruby>行<rt>い</rt></ruby>かせることになりました。「<ruby>坊<rt>ぼう</rt></ruby>や、お<ruby>手<rt>て</rt></ruby>々を<ruby>片方<rt>かたほう</rt></ruby>お<ruby>出<rt>だ</rt></ruby>し」とお<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>は<ruby>言<rt>い</rt></ruby>いました。その<ruby>手<rt>て</rt></ruby>を、お<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>はしばらく<ruby>握<rt>にぎ</rt></ruby>っているうちに、<ruby>可愛<rt>かわい</rt></ruby>い<ruby>人間<rt>にんげん</rt></ruby>の<ruby>子供<rt>こども</rt></ruby>の<ruby>手<rt>て</rt></ruby>にしてしまいました。<ruby>子狐<rt>こぎつね</rt></ruby>はその<ruby>手<rt>て</rt></ruby>を<ruby>広<rt>ひろ</rt></ruby>げたり<ruby>握<rt>にぎ</rt></ruby>ったり、つねってみたりしました。「なんだか<ruby>変<rt>へん</rt></ruby>だな母ちゃん、これなあに」と、<ruby>雪<rt>ゆき</rt></ruby>あかりにその<ruby>手<rt>て</rt></ruby>をすかして<ruby>見<rt>み</rt></ruby>ながら<ruby>言<rt>い</rt></ruby>いました。",
+    "「それは<ruby>人間<rt>にんげん</rt></ruby>の<ruby>手<rt>て</rt></ruby>よ。いいかい、<ruby>坊<rt>ぼう</rt></ruby>や、<ruby>町<rt>まち</rt></ruby>へ<ruby>行<rt>い</rt></ruby>ったらね、たくさん<ruby>人間<rt>にんげん</rt></ruby>の<ruby>家<rt>いえ</rt></ruby>があるからね。まず<ruby>表<rt>おもて</rt></ruby>に<ruby>丸<rt>まる</rt></ruby>いシャッポのかんばんのかかっている<ruby>家<rt>いえ</rt></ruby>を<ruby>探<rt>さが</rt></ruby>すんだよ。それが<ruby>見<rt>み</rt></ruby>つかったらね、<ruby>戸<rt>と</rt></ruby>をトントンと<ruby>叩<rt>たた</rt></ruby>いて、『<ruby>今晩<rt>こんばん</rt></ruby>は』っておっしゃい。すると<ruby>中<rt>なか</rt></ruby>から<ruby>人間<rt>にんげん</rt></ruby>が、すこうし<ruby>戸<rt>と</rt></ruby>をあけるからね、そのすきまから、こっちの<ruby>手<rt>て</rt></ruby>、ほら<ruby>人間<rt>にんげん</rt></ruby>の<ruby>手<rt>て</rt></ruby>をお<ruby>出<rt>だ</rt></ruby>し、そして『この<ruby>手<rt>て</rt></ruby>にちょうどいい<ruby>手袋<rt>てぶくろ</rt></ruby>ください』っていうんだよ」と<ruby>言<rt>い</rt></ruby>いきかせました。",
+    "「どうして」と<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>聞<rt>き</rt></ruby>きかえしました。「<ruby>人間<rt>にんげん</rt></ruby>はね、<ruby>相手<rt>あいて</rt></ruby>が<ruby>狐<rt>きつね</rt></ruby>だとわかると、<ruby>手袋<rt>てぶくろ</rt></ruby>を<ruby>売<rt>う</rt></ruby>ってくれないんだよ。それどころか、<ruby>捕<rt>つか</rt></ruby>まえて<ruby>檻<rt>おり</rt></ruby>の<ruby>中<rt>なか</rt></ruby>へ<ruby>入<rt>い</rt></ruby>れちゃうんだよ。<ruby>人間<rt>にんげん</rt></ruby>ってほんとに<ruby>怖<rt>こわ</rt></ruby>いものなんだよ」「ふうん」「けっしてこっちの<ruby>手<rt>て</rt></ruby>、<ruby>狐<rt>きつね</rt></ruby>の<ruby>手<rt>て</rt></ruby>を<ruby>出<rt>だ</rt></ruby>しちゃいけないよ」と<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>は<ruby>持<rt>も</rt></ruby>って<ruby>来<rt>き</rt></ruby>た<ruby>二<rt>ふた</rt></ruby>つの<ruby>白銅貨<rt>はくどうか</rt></ruby>を<ruby>子狐<rt>こぎつね</rt></ruby>の、<ruby>人間<rt>にんげん</rt></ruby>のほうの<ruby>手<rt>て</rt></ruby>ににぎらせてやりました。",
+    "<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>町<rt>まち</rt></ruby>の<ruby>灯<rt>あかり</rt></ruby>を<ruby>目当<rt>めあ</rt></ruby>てに、<ruby>雪明<rt>ゆきあか</rt></ruby>りの<ruby>野原<rt>のはら</rt></ruby>をよちよちやって<ruby>行<rt>い</rt></ruby>きました。はじめ<ruby>一<rt>ひと</rt></ruby>つ<ruby>二<rt>ふた</rt></ruby>つあった<ruby>灯<rt>あかり</rt></ruby>が<ruby>三<rt>みっ</rt></ruby>つ<ruby>四<rt>よっ</rt></ruby>つとふえ、はじめて<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>町<rt>まち</rt></ruby>へ<ruby>入<rt>はい</rt></ruby>りました。やがて<ruby>帽子屋<rt>ぼうしや</rt></ruby>を<ruby>見<rt>み</rt></ruby>つけました。<ruby>教<rt>おそ</rt></ruby>わったとおり<ruby>戸<rt>と</rt></ruby>を<ruby>叩<rt>たた</rt></ruby>くと、<ruby>中<rt>なか</rt></ruby>から「<ruby>今晩<rt>こんばん</rt></ruby>は」と、<ruby>戸<rt>と</rt></ruby>が<ruby>一寸<rt>ちょっと</rt></ruby>あきました。",
+    "その<ruby>光<rt>ひかり</rt></ruby>の<ruby>帯<rt>おび</rt></ruby>が<ruby>眩<rt>まぶ</rt></ruby>しかったので、<ruby>子狐<rt>こぎつね</rt></ruby>はついうっかり、<ruby>間違<rt>まちが</rt></ruby>った<ruby>方<rt>ほう</rt></ruby>のお<ruby>手<rt>て</rt></ruby>々、お<ruby>母<rt>かあ</rt></ruby>さんが<ruby>出<rt>だ</rt></ruby>しちゃいけないと<ruby>言<rt>い</rt></ruby>った<ruby>方<rt>ほう</rt></ruby>の<ruby>手<rt>て</rt></ruby>、<ruby>狐<rt>きつね</rt></ruby>の<ruby>方<rt>ほう</rt></ruby>の<ruby>手<rt>て</rt></ruby>をさし<ruby>込<rt>こ</rt></ruby>んでしまいました。「この<ruby>手<rt>て</rt></ruby>にちょうどいい<ruby>手袋<rt>てぶくろ</rt></ruby>ください」<ruby>帽子屋<rt>ぼうしや</rt></ruby>の<ruby>主人<rt>しゅじん</rt></ruby>は、おやおやと<ruby>思<rt>おも</rt></ruby>いました。<ruby>狐<rt>きつね</rt></ruby>の<ruby>手<rt>て</rt></ruby>です。<ruby>狐<rt>きつね</rt></ruby>だから<ruby>木<rt>こ</rt></ruby>の<ruby>葉<rt>は</rt></ruby>で<ruby>買<rt>か</rt></ruby>いに<ruby>来<rt>き</rt></ruby>たんだなと<ruby>思<rt>おも</rt></ruby>いました。そこで、「<ruby>先<rt>さき</rt></ruby>にお<ruby>金<rt>かね</rt></ruby>を<ruby>下<rt>くだ</rt></ruby>さい」と<ruby>言<rt>い</rt></ruby>いました。",
+    "<ruby>子狐<rt>こぎつね</rt></ruby>はすなおに、にぎってきた<ruby>白銅貨<rt>はくどうか</rt></ruby>を<ruby>二<rt>ふた</rt></ruby>つ<ruby>渡<rt>わた</rt></ruby>しました。<ruby>主人<rt>しゅじん</rt></ruby>はそれを<ruby>人差指<rt>ひとさしゆび</rt></ruby>のさきにのせて、カチカチと<ruby>合<rt>あ</rt></ruby>わせて<ruby>見<rt>み</rt></ruby>ると、ちゃんと<ruby>本物<rt>ほんもの</rt></ruby>のお<ruby>金<rt>かね</rt></ruby>でしたから、<ruby>棚<rt>たな</rt></ruby>から<ruby>子供<rt>こども</rt></ruby>用の<ruby>毛糸<rt>けいと</rt></ruby>の<ruby>手袋<rt>てぶくろ</rt></ruby>をとり<ruby>出<rt>だ</rt></ruby>してきて、<ruby>子狐<rt>こぎつね</rt></ruby>の<ruby>手<rt>て</rt></ruby>にもたせてやりました。<ruby>子狐<rt>こぎつね</rt></ruby>はお<ruby>礼<rt>れい</rt></ruby>を<ruby>言<rt>い</rt></ruby>ってまたもと<ruby>来<rt>き</rt></ruby>た<ruby>道<rt>みち</rt></ruby>をもどり<ruby>始<rt>はじ</rt></ruby>めました。",
+    "「お<ruby>母<rt>かあ</rt></ruby>ちゃんは<ruby>人間<rt>にんげん</rt></ruby>は<ruby>恐<rt>おそ</rt></ruby>ろしいものだって<ruby>言<rt>い</rt></ruby>ったが、ちっとも<ruby>恐<rt>おそ</rt></ruby>ろしくないや。だってぼくの<ruby>手<rt>て</rt></ruby>を<ruby>見<rt>み</rt></ruby>てもどうもしなかったもの」と<ruby>子狐<rt>こぎつね</rt></ruby>は<ruby>思<rt>おも</rt></ruby>いました。<ruby>途中<rt>とちゅう</rt></ruby>で、ある<ruby>窓<rt>まど</rt></ruby>の<ruby>下<rt>した</rt></ruby>を<ruby>通<rt>とお</rt></ruby>りかかると、<ruby>人間<rt>にんげん</rt></ruby>の<ruby>母親<rt>ははおや</rt></ruby>の<ruby>声<rt>こえ</rt></ruby>で、<ruby>子守歌<rt>こもりうた</rt></ruby>がきこえてきました。そのやさしい<ruby>声<rt>こえ</rt></ruby>にさそわれて、<ruby>子狐<rt>こぎつね</rt></ruby>はしばらくそこに<ruby>立<rt>た</rt></ruby>ちどまって<ruby>聞<rt>き</rt></ruby>いていました。",
+    "そして、<ruby>母<rt>かあ</rt></ruby>さんぎつねの<ruby>待<rt>ま</rt></ruby>っているところへ<ruby>帰<rt>かえ</rt></ruby>って<ruby>来<rt>き</rt></ruby>ました。「お<ruby>母<rt>かあ</rt></ruby>ちゃん、<ruby>人間<rt>にんげん</rt></ruby>ってちっとも<ruby>恐<rt>おそ</rt></ruby>くないや」「どうして」「<ruby>手袋<rt>てぶくろ</rt></ruby>ちゃんと<ruby>売<rt>う</rt></ruby>ってくれたもの」と<ruby>言<rt>い</rt></ruby>って、<ruby>手<rt>て</rt></ruby>に<ruby>入<rt>い</rt></ruby>れた<ruby>手袋<rt>てぶくろ</rt></ruby>を<ruby>両手<rt>りょうて</rt></ruby>にはめて<ruby>見<rt>み</rt></ruby>せました。<ruby>母<rt>かあ</rt></ruby>さん<ruby>狐<rt>ぎつね</rt></ruby>は、「まあ」とあきれましたが、「<ruby>本当<rt>ほんとう</rt></ruby>に<ruby>人間<rt>にんげん</rt></ruby>はいいものかしら。<ruby>本当<rt>ほんとう</rt></ruby>に<ruby>人間<rt>にんげん</rt></ruby>はいいものかしら」とつぶやきました。"
+  ]
+};
+var SEGMENTS = BOOK.paras;
+
+var CAT_LABEL = {
+  fact:"よみとる", reason:"わけ", feeling:"きもち", onomatopoeia:"ことばの ひびき",
+  kosoado:"こそあど", attribute:"ことばの てがかり", innervoice:"心の こえ"
+};
+
+/* ============================================================
+   状態管理
+   ============================================================ */
+var LS = "yomitoki_v2";
+var state = load();
+function load(){
+  try{ var raw=localStorage.getItem(LS); if(raw) return JSON.parse(raw); }catch(e){}
+  return {
+    mode:null, textMode:null,
+    segIndex:0, segStep:"reveal", // 'reveal'|'audio'|'vocab'|'dialogue'|'deep0'|'deep1'|'predict'|'complete'
+    gen:null, pendingPrediction:null,
+    completed:[], records:[], skillTally:{}, certified:false
+  };
+}
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} }
+function todayStr(){
+  var d=new Date();
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+
+/* ============================================================
+   起動
+   ============================================================ */
+buildSnow();
+if(!state.mode){ document.getElementById("modeScreen").style.display="block"; }
+else { startApp(); }
+
+function buildSnow(){
+  var f=document.getElementById("snowfield"), html="";
+  for(var i=0;i<26;i++){
+    var left=Math.random()*100, dur=6+Math.random()*8, delay=Math.random()*8,
+        size=3+Math.random()*4, op=.3+Math.random()*.6;
+    html+='<div class="snow" style="left:'+left+'%;width:'+size+'px;height:'+size+
+      'px;opacity:'+op+';animation-duration:'+dur+'s;animation-delay:-'+delay+'s"></div>';
+  }
+  f.innerHTML=html;
+}
+function setMode(m){ state.mode=m; if(!state.textMode) state.textMode=(m==="kids")?"furi":"kanji"; save(); startApp(); }
+function changeMode(){ document.getElementById("app").style.display="none";
+  document.getElementById("modeScreen").style.display="block"; }
+
+function startApp(){
+  document.getElementById("modeScreen").style.display="none";
+  document.getElementById("app").style.display="block";
+  document.getElementById("hdMode").textContent = (state.mode==="kids") ? "（小学1・2年）" : "（大人）";
+  renderStory();
+  renderQuiz();
+  renderGrow();
+}
+
+/* ============================================================
+   本文タブ(3モード)
+   ============================================================ */
+function ttsReading(p){
+  var s = p.replace(/<ruby>[^<]*<rt>([^<]*)<\/rt><\/ruby>/g, "$1");
+  s = s.replace(/<rt>.*?<\/rt>/g, "");
+  s = s.replace(/<[^>]+>/g, "");
+  return s;
+}
+function renderStory(){
+  var body=document.getElementById("storyBody"), html="";
+  if(state.textMode==="hira"){
+    for(var i=0;i<BOOK.paras.length;i++) html+="<p>"+ttsReading(BOOK.paras[i])+"</p>";
+  } else {
+    for(var j=0;j<BOOK.paras.length;j++) html+="<p>"+BOOK.paras[j]+"</p>";
+  }
+  body.innerHTML=html;
+  body.className = "story"+(state.textMode==="kanji"?" nofuri":"");
+  var tms=document.querySelectorAll(".tm");
+  for(var k=0;k<tms.length;k++) tms[k].className="tm"+(tms[k].getAttribute("data-m")===state.textMode?" on":"");
+}
+function setTextMode(m){ state.textMode=m; save(); renderStory(); }
+
+var ttsOn=false;
+function toggleTTS(){
+  if(!("speechSynthesis" in window)){ toast("この端末は音読に対応していません"); return; }
+  if(ttsOn){ window.speechSynthesis.cancel(); ttsOn=false; setTtsPill(); return; }
+  var text = BOOK.paras.map(function(p){ return ttsReading(p); }).join("。");
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP"; u.rate=(state.mode==="kids")?0.85:1.0;
+  u.onend=function(){ ttsOn=false; setTtsPill(); };
+  window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+  ttsOn=true; setTtsPill();
+}
+function setTtsPill(){
+  var p=document.getElementById("ttsPill");
+  p.className="pill"+(ttsOn?" act":""); p.textContent=ttsOn?"⏸ とめる":"🔊 音読";
+}
+function speakSegment(i){
+  if(!("speechSynthesis" in window)) return;
+  var u=new SpeechSynthesisUtterance(ttsReading(SEGMENTS[i]));
+  u.lang="ja-JP"; u.rate=(state.mode==="kids")?0.85:1.0;
+  window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+}
+
+/* ============================================================
+   場面の1問(段落フローエンジン)
+   ============================================================ */
+function segDone(i){ return state.completed.indexOf(i)>=0; }
+
+function renderQuiz(){
+  document.getElementById("segTag").textContent = "場面 "+(state.segIndex+1)+"／"+SEGMENTS.length;
+  var dots="";
+  for(var i=0;i<SEGMENTS.length;i++){
+    var cls="segdot"+(segDone(i)?" done":"")+(i===state.segIndex?" now":"");
+    dots+='<span class="'+cls+'"></span>';
+  }
+  document.getElementById("segDots").innerHTML=dots;
+
+  if(state.segIndex >= SEGMENTS.length){ renderAllDoneInQuiz(); return; }
+
+  switch(state.segStep){
+    case "reveal":   renderReveal(); break;
+    case "audio":    renderAudio(); break;
+    case "loading":  renderLoading(); break;
+    case "vocab":    renderChoiceStep("vocab"); break;
+    case "dialogue": renderChoiceStep("dialogue"); break;
+    case "deep0":    renderChoiceStep("deep0"); break;
+    case "deep1":    renderChoiceStep("deep1"); break;
+    case "predict":  renderPredict(); break;
+    case "segdone":  renderSegDone(); break;
+    default: renderAudio();
+  }
+}
+function renderAllDoneInQuiz(){
+  document.getElementById("quizBody").innerHTML =
+    '<div style="text-align:center;padding:20px 6px">'+
+    '<div style="font-size:40px">🏅</div>'+
+    '<div style="font-weight:700;font-size:16px;margin:8px 0 4px">レベル1、ぜんぶ おわったよ！</div>'+
+    '<div style="color:var(--ink2);font-size:13px;margin-bottom:14px">「成長」タブで 認定証を見てみよう</div>'+
+    '<button class="btn primary" onclick="go(\'Grow\')">成長タブへ</button>'+
+    '</div>';
+}
+
+function renderReveal(){
+  var qb=document.getElementById("quizBody");
+  if(!state.pendingPrediction){ state.segStep="audio"; save(); renderAudio(); return; }
+  var p=state.pendingPrediction;
+  var yourText = p.choices[p.userChoice];
+  var correctText = p.choices[p.correct];
+  var hit = p.userChoice===p.correct;
+  qb.innerHTML =
+    '<div class="steplabel">さきよみ よそう の こたえあわせ</div>'+
+    '<div class="revealbox"><h4>まえの ばめんで した よそう</h4>'+
+    '<div class="qtext" style="font-size:15px;margin-bottom:10px">'+p.question+'</div>'+
+    '<div class="revealline">きみの よそう：<b>'+yourText+'</b></div>'+
+    '<div class="revealline">ほんとうは：<b>'+correctText+'</b></div>'+
+    '<div class="revealline" style="margin-top:8px;font-weight:700;color:'+(hit?"var(--good)":"var(--fox)")+'">'+
+      (hit ? "🎉 よそう、あたったね！" : "おしい！でも よく かんがえたね")+
+    '</div></div>'+
+    '<button class="btn primary" onclick="clearRevealAndGoAudio()">つぎへ</button>';
+}
+function clearRevealAndGoAudio(){ state.pendingPrediction=null; state.segStep="audio"; save(); renderQuiz(); }
+
+function renderAudio(){
+  var i=state.segIndex;
+  var preview = ttsReading(SEGMENTS[i]);
+  if(preview.length>60) preview = preview.slice(0,60)+"…";
+  document.getElementById("quizBody").innerHTML =
+    '<div class="steplabel">おんどく</div>'+
+    '<div class="segquote">'+preview+'</div>'+
+    '<button class="btn ghost" onclick="speakSegment('+i+')" style="margin-bottom:10px">🔊 この場面を聞く</button>'+
+    '<button class="btn primary" onclick="startGenForSegment()">よめたよ、つぎへ</button>';
+}
+
+function renderLoading(){
+  document.getElementById("quizBody").innerHTML =
+    '<div style="text-align:center;padding:30px 10px;color:var(--ink2)">'+
+    '<span class="spin"></span> この場面の問いを作っています…</div>';
+}
+
+function startGenForSegment(){
+  state.segStep="loading"; save(); renderQuiz();
+  var i=state.segIndex;
+  var levelInstr = state.mode==="kids"
+    ? "対象は小学1〜2年生。設問は40字以内、やさしい言葉で。選択肢もやさしく。"
+    : "対象は大人の学び直し。設問はやや踏み込んでよい。";
+  var isLast = (i===SEGMENTS.length-1);
+  var prompt =
+    "あなたは新美南吉『手袋を買いに』を教材にした読解ドリルの出題者です。\n"+
+    "以下は物語のうちの1つの場面(段落)です。この場面「だけ」を対象に、選択式の設問を作ってください。\n"+
+    levelInstr+"\n"+
+    "必ず作るもの:\n"+
+    "1) vocab: この場面の中の、少し難しい言葉や表現を1つ選び、その意味を問う3択(正解1つ＋もっともらしい誤答2つ)。\n"+
+    "2) deep: 次の観点から、この場面に実際に材料がある観点を2つ選び、それぞれ設問を作る。観点は fact(本文の事実確認)/reason(具体的な理由)/feeling(具体的な描写から読み取れる気持ち)/onomatopoeia(擬態語・擬音語の意味)/kosoado(こそあど言葉が本文にあれば、それが指すもの)/attribute(話し方や言葉づかいからわかる人物の手がかり)/innervoice(かぎかっこの外にある、登場人物の心の声を選ばせる)。実在しない観点は無理に作らない。各設問は3〜4択で、正解1つ＋もっともらしい誤答。\n"+
+    "任意で作るもの:\n"+
+    "3) dialogue: この場面にセリフ(「」)が複数ある場合のみ、『どの発言が誰のものか、または特定の内容の発言はどれか』を問う設問を3択で作る。セリフが無い/1つしかない場合は question を空文字にする。\n"+
+    (isLast ? "4) prediction: これは物語の最後の場面なので、prediction.question は空文字にする。\n"
+            : "4) prediction: この場面の続きで次に何が起こるかを予想させる設問を3択で作る(正解は物語の続きの内容と一致させること)。question を空文字にはしない。\n")+
+    "JSONのみで返す。\n\n"+
+    "【この場面の本文】\n"+ ttsReading(SEGMENTS[i]) +"\n\n"+
+    "【物語全体（前後関係の参考用）】\n"+ SEGMENTS.map(function(p){return ttsReading(p);}).join("\n");
+
+  var schema = {
+    type:"OBJECT",
+    properties:{
+      vocab:{ type:"OBJECT", properties:{
+        word:{type:"STRING"}, question:{type:"STRING"},
+        choices:{type:"ARRAY", items:{type:"STRING"}}, correct:{type:"INTEGER"}
+      }},
+      dialogue:{ type:"OBJECT", properties:{
+        question:{type:"STRING"},
+        choices:{type:"ARRAY", items:{type:"STRING"}}, correct:{type:"INTEGER"}
+      }},
+      deep:{ type:"ARRAY", items:{ type:"OBJECT", properties:{
+        category:{type:"STRING"}, question:{type:"STRING"},
+        choices:{type:"ARRAY", items:{type:"STRING"}}, correct:{type:"INTEGER"}
+      }}},
+      prediction:{ type:"OBJECT", properties:{
+        question:{type:"STRING"},
+        choices:{type:"ARRAY", items:{type:"STRING"}}, correct:{type:"INTEGER"}
+      }}
+    },
+    required:["vocab","deep"]
+  };
+
+  askAI(prompt, schema, function(err,d){
+    if(err || !d || !d.vocab || !d.deep){ showGenError(err); return; }
+    state.gen = d;
+    state.segStep = "vocab";
+    save();
+    renderQuiz();
+  });
+}
+function showGenError(err){
+  document.getElementById("quizBody").innerHTML =
+    '<div style="color:var(--fox);font-weight:700;margin-bottom:6px">うまくいきませんでした</div>'+
+    '<div style="font-size:11.5px;color:#8a7c68;background:var(--panel2);border-radius:8px;padding:8px;margin-bottom:10px;word-break:break-all">'+esc(err||"不明なエラー")+'</div>'+
+    '<button class="btn primary" onclick="startGenForSegment()">もう一度ためす</button>';
+}
+function esc(s){ return String(s).replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* 選択式ステップの共通描画(vocab/dialogue/deep0/deep1) */
+var STEP_ORDER = ["vocab","dialogue","deep0","deep1","predict","segdone"];
+function nextStep(cur){
+  var idx = STEP_ORDER.indexOf(cur);
+  for(var i=idx+1;i<STEP_ORDER.length;i++){
+    var s=STEP_ORDER[i];
+    if(s==="dialogue" && (!state.gen.dialogue || !state.gen.dialogue.question)) continue;
+    if(s==="deep0" && (!state.gen.deep || !state.gen.deep[0])) continue;
+    if(s==="deep1" && (!state.gen.deep || !state.gen.deep[1])) continue;
+    if(s==="predict" && (!state.gen.prediction || !state.gen.prediction.question)) continue;
+    return s;
+  }
+  return "segdone";
+}
+function stepData(step){
+  if(step==="vocab") return { label:"ことば", q:state.gen.vocab.question, choices:state.gen.vocab.choices, correct:state.gen.vocab.correct, cat:null };
+  if(step==="dialogue") return { label:"せりふ さがし", q:state.gen.dialogue.question, choices:state.gen.dialogue.choices, correct:state.gen.dialogue.correct, cat:null };
+  if(step==="deep0") return { label:CAT_LABEL[state.gen.deep[0].category]||"よみとる", q:state.gen.deep[0].question, choices:state.gen.deep[0].choices, correct:state.gen.deep[0].correct, cat:state.gen.deep[0].category };
+  if(step==="deep1") return { label:CAT_LABEL[state.gen.deep[1].category]||"よみとる", q:state.gen.deep[1].question, choices:state.gen.deep[1].choices, correct:state.gen.deep[1].correct, cat:state.gen.deep[1].category };
+  return null;
+}
+function renderChoiceStep(step){
+  var d = stepData(step);
+  if(!d){ state.segStep = nextStep(step); save(); renderQuiz(); return; }
+  var h = '<div class="steplabel">'+d.label+'</div>'+
+    '<div class="qtext">'+d.q+'</div>'+
+    '<div id="choiceArea">';
+  for(var i=0;i<d.choices.length;i++){
+    h += '<button class="choicebtn" data-i="'+i+'" onclick="answerChoice(\''+step+'\','+i+','+d.correct+')">'+d.choices[i]+'</button>';
+  }
+  h += '</div><div id="stepNextWrap"></div>';
+  document.getElementById("quizBody").innerHTML = h;
+}
+function answerChoice(step, i, correct){
+  var btns = document.querySelectorAll("#choiceArea .choicebtn");
+  for(var k=0;k<btns.length;k++){
+    btns[k].disabled = true;
+    if(k===correct) btns[k].className="choicebtn correct";
+    else if(k===i) btns[k].className="choicebtn wrong";
+  }
+  if(!state.skillTally) state.skillTally={};
+  var d = stepData(step);
+  if(d.cat){ state.skillTally[d.cat] = (state.skillTally[d.cat]||0)+1; }
+  save();
+  var msg = (i===correct) ? "◎ せいかい！" : "△ おしい！せいかいは「"+d.choices[correct]+"」";
+  document.getElementById("stepNextWrap").innerHTML =
+    '<div class="fb">'+msg+'</div>'+
+    '<button class="btn primary" style="margin-top:10px" onclick="advanceFrom(\''+step+'\')">つぎへ</button>';
+}
+function advanceFrom(step){
+  var nx = nextStep(step);
+  state.segStep = nx; save(); renderQuiz();
+}
+
+function renderPredict(){
+  var p = state.gen.prediction;
+  var h = '<div class="steplabel">さきよみ よそう</div>'+
+    '<div class="qtext">'+p.question+'</div>'+
+    '<div id="choiceArea">';
+  for(var i=0;i<p.choices.length;i++){
+    h += '<button class="choicebtn" data-i="'+i+'" onclick="answerPredict('+i+')">'+p.choices[i]+'</button>';
+  }
+  h += '</div><div id="stepNextWrap"></div>';
+  document.getElementById("quizBody").innerHTML = h;
+}
+function answerPredict(i){
+  var btns = document.querySelectorAll("#choiceArea .choicebtn");
+  for(var k=0;k<btns.length;k++){ btns[k].disabled=true; if(k===i) btns[k].className="choicebtn"; }
+  state.pendingPrediction = {
+    question: state.gen.prediction.question,
+    choices: state.gen.prediction.choices,
+    correct: state.gen.prediction.correct,
+    userChoice: i
+  };
+  save();
+  document.getElementById("stepNextWrap").innerHTML =
+    '<div class="fb">きみの よそう を おぼえておくね。つぎの場面で こたえあわせ するよ。</div>'+
+    '<button class="btn primary" style="margin-top:10px" onclick="advanceFrom(\'predict\')">つぎへ</button>';
+}
+
+function renderSegDone(){
+  document.getElementById("quizBody").innerHTML =
+    '<div style="text-align:center;padding:16px 6px">'+
+    '<div style="font-size:34px">🎉</div>'+
+    '<div style="font-weight:700;font-size:16px;margin:6px 0 14px">この場面クリア！</div>'+
+    '<button class="btn primary" onclick="completeSegment()">つぎの場面へ</button>'+
+    '</div>';
+}
+function completeSegment(){
+  var i = state.segIndex;
+  if(state.completed.indexOf(i)<0) state.completed.push(i);
+  state.records.push({ date: todayStr(), seg: i });
+  state.gen = null;
+  state.segIndex = i+1;
+  state.segStep = state.pendingPrediction ? "reveal" : "audio";
+  save();
+  renderQuiz();
+  renderGrow();
+}
+
+/* ============================================================
+   成長タブ / 認定証
+   ============================================================ */
+function renderGrow(){
+  document.getElementById("gSeg").textContent = state.completed.length;
+  document.getElementById("gTotalSeg").textContent = SEGMENTS.length;
+  document.getElementById("gStreak").textContent = calcStreak();
+
+  var days={}, i;
+  for(i=0;i<state.records.length;i++) days[state.records[i].date]=true;
+  var dots="", d=new Date();
+  for(i=34;i>=0;i--){
+    var dd=new Date(d.getTime()-i*86400000);
+    var s=dd.getFullYear()+"-"+("0"+(dd.getMonth()+1)).slice(-2)+"-"+("0"+dd.getDate()).slice(-2);
+    dots+='<div class="dot'+(days[s]?" hit":"")+'"></div>';
+  }
+  document.getElementById("calDots").innerHTML=dots;
+
+  var sk="";
+  for(var key in CAT_LABEL){
+    var n = (state.skillTally && state.skillTally[key]) || 0;
+    if(n>0) sk += '<span class="skillchip">'+CAT_LABEL[key]+' <b>×'+n+'</b></span>';
+  }
+  document.getElementById("skillRow").innerHTML = sk || '<span style="color:var(--ink2);font-size:12.5px">まだ ありません</span>';
+
+  var allDone = state.completed.length >= SEGMENTS.length;
+  document.getElementById("growNormal").style.display = allDone ? "none":"block";
+  document.getElementById("growCert").style.display = allDone ? "block":"none";
+  if(allDone) renderCert();
+}
+function calcStreak(){
+  var days={}; for(var i=0;i<state.records.length;i++) days[state.records[i].date]=true;
+  var n=0, d=new Date();
+  for(;;){
+    var s=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+    if(days[s]){ n++; d=new Date(d.getTime()-86400000); }
+    else if(n===0){ d=new Date(d.getTime()-86400000);
+      var s2=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+      if(days[s2]){ continue; } else break;
+    } else break;
+  }
+  return n;
+}
+function renderCert(){
+  document.getElementById("growCert").innerHTML =
+    '<div class="certwrap"><div class="cert">'+
+    '<div class="cicon">🏅</div>'+
+    '<h2>認定証</h2>'+
+    '<div class="clevel">レベル１</div>'+
+    '<p>あなたは『手袋を買いに』を<br>さいごまで よみとおし、<br>ぜんばめんの もんだいに<br>こたえることが できました。</p>'+
+    '<div class="csign">よみときドリルAI</div>'+
+    '</div></div>';
+}
+
+/* エクスポート / インポート */
+function doExport(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download="yomitoki-kiroku-"+todayStr()+".json"; a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  toast("記録を書き出しました");
+}
+function doImport(e){
+  var f=e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var obj=JSON.parse(r.result);
+      if(obj && obj.hasOwnProperty("segIndex")){ state=obj; save(); startApp(); toast("記録を読み込みました"); }
+      else toast("形式が正しくありません");
+    }catch(err){ toast("読み込みに失敗しました"); }
+  };
+  r.readAsText(f); e.target.value="";
+}
+
+/* ============================================================
+   タブ切替 / トースト
+   ============================================================ */
+function go(p){
+  var pages=["Story","Quiz","Grow"], i;
+  for(i=0;i<pages.length;i++) document.getElementById("page"+pages[i]).className="page"+(pages[i]===p?" on":"");
+  var tabs=document.querySelectorAll(".tab");
+  for(i=0;i<tabs.length;i++) tabs[i].className="tab"+(tabs[i].getAttribute("data-p")===p?" on":"");
+  if(p==="Grow") renderGrow();
+  if(p==="Quiz") renderQuiz();
+  if(p!=="Story" && ttsOn){ window.speechSynthesis.cancel(); ttsOn=false; setTtsPill(); }
+}
+var toastT;
+function toast(msg){
+  var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show";
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.className="toast"; },2600);
+}
+</script>
+</body>
+</html>
