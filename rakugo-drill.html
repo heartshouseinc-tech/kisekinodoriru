@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>らくご よみときドリル</title>
+<style>
+  :root{
+    --paper:#f6ede0; --paper2:#efe1c8; --ink:#2b2420; --ink2:#6b5f52;
+    --beni:#9c3d2e; --beni-deep:#7a2c20; --gold:#b8892f; --gold-soft:#e8cd8f;
+    --bamboo:#4f6b4a; --line:#e0d0b8; --stage:#2b2019;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--stage); color:var(--ink);
+    font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","Yu Gothic",YuGothic,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.7;
+  }
+  .wrap{max-width:560px;margin:0 auto;min-height:100vh;background:var(--stage);position:relative;overflow-x:hidden}
+  .mincho{font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+
+  /* ---- 扇形の背景装飾 ---- */
+  .fanbg{position:fixed;top:-120px;right:-100px;width:340px;height:340px;max-width:100%;
+    background:conic-gradient(from 200deg at 50% 50%, var(--beni) 0deg, transparent 40deg,
+      var(--gold) 60deg, transparent 100deg, var(--beni-deep) 140deg, transparent 200deg);
+    opacity:.5; border-radius:50%; filter:blur(2px); pointer-events:none; z-index:0}
+
+  header{position:relative;z-index:2;padding:24px 20px 16px;text-align:center}
+  .kicker{color:var(--gold-soft);font-size:12px;letter-spacing:.28em;font-weight:700}
+  h1{margin:4px 0 0;color:#fff;font-size:26px;letter-spacing:.05em;font-weight:700}
+  .sub{color:#cbb99a;font-size:12.5px;margin-top:4px}
+
+  .zabuton-meter{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);
+    border:1px solid rgba(232,205,143,.35);border-radius:999px;padding:5px 14px;margin-top:10px;
+    color:var(--gold-soft);font-size:12.5px;font-weight:700}
+
+  main{position:relative;z-index:2;padding:0 14px 30px}
+  .card{background:var(--paper);border-radius:18px;padding:20px;margin:14px 0;
+    box-shadow:0 10px 28px rgba(0,0,0,.35);border:1px solid rgba(0,0,0,.04)}
+  .card.tight{padding:16px}
+
+  /* ---- モード選択 ---- */
+  .modewrap{padding:30px 8px}
+  .modeq{color:#fff;text-align:center;font-size:18px;margin-bottom:6px}
+  .modehint{color:#cbb99a;text-align:center;font-size:12.5px;margin-bottom:20px}
+  .modebtn{display:block;width:100%;border:none;border-radius:16px;padding:19px;margin:11px 0;
+    text-align:left;cursor:pointer;font-size:16.5px;font-weight:700;color:var(--ink);
+    background:var(--paper);box-shadow:0 8px 20px rgba(0,0,0,.28)}
+  .modebtn small{display:block;font-weight:400;color:var(--ink2);font-size:12.5px;margin-top:4px}
+  .modebtn .em{font-size:24px;margin-right:8px;vertical-align:-2px}
+
+  /* ---- ライブラリ(演目一覧) ---- */
+  .mekuri{position:relative;background:var(--paper);border-radius:4px 14px 14px 4px;
+    padding:16px 16px 16px 20px;margin:12px 0;cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);border-left:6px solid var(--beni);
+    display:flex;align-items:center;gap:12px}
+  .mekuri.locked{opacity:.5;cursor:default;border-left-color:#8a8073}
+  .mekuri.done{border-left-color:var(--gold)}
+  .mekuri-num{font-size:11px;color:var(--ink2);font-weight:700;min-width:20px}
+  .mekuri-body{flex:1;min-width:0}
+  .mekuri-title{font-size:19px;font-weight:700}
+  .mekuri-title.mincho{font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+  .genre-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;
+    border-radius:999px;margin-top:4px}
+  .genre-badge.kokkei{background:#fdeee9;color:var(--beni-deep)}
+  .genre-badge.ninjo{background:#eaf0e8;color:var(--bamboo)}
+  .mekuri-prog{font-size:11.5px;color:var(--ink2);margin-top:6px}
+  .mekuri-prog b{color:var(--beni)}
+  .mekuri-lock{font-size:22px;color:#8a8073}
+  .mekuri-check{font-size:20px;color:var(--gold)}
+  .barbg{background:var(--line);border-radius:999px;height:6px;margin-top:5px;overflow:hidden}
+  .barfg{background:var(--beni);height:100%;border-radius:999px}
+
+  .backrow{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+  .backbtn{background:none;border:none;color:var(--gold-soft);font-size:14px;font-weight:700;
+    cursor:pointer;padding:6px 0}
+
+  /* ---- タブ ---- */
+  .tabs{display:flex;background:rgba(255,255,255,.06);border-radius:14px;padding:4px;margin:0 0 6px;gap:4px}
+  .tab{flex:1;border:none;background:none;color:#cbb99a;padding:10px 0;border-radius:10px;
+    font-size:12.5px;cursor:pointer;font-weight:700}
+  .tab.on{background:var(--paper);color:var(--ink)}
+  .page{display:none}.page.on{display:block}
+
+  /* ---- 本文 ---- */
+  .textmode{display:flex;background:var(--paper2);border-radius:11px;padding:4px;margin-bottom:12px;gap:4px}
+  .tm{flex:1;border:none;background:none;padding:8px 0;border-radius:8px;font-size:12px;
+    font-weight:700;color:var(--ink2);cursor:pointer}
+  .tm.on{background:#fff;color:var(--beni);box-shadow:0 2px 5px rgba(0,0,0,.08)}
+  .story{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:16.5px;line-height:2.05;
+    color:#2a2419;letter-spacing:.02em}
+  .story p{margin:0 0 15px;text-indent:1em}
+  .story.nofuri rt{display:none}
+  ruby rt{font-size:.52em;color:var(--beni);font-family:sans-serif;font-weight:400}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--ink2);
+    cursor:pointer;font-weight:600}
+  .pill.act{background:var(--gold);border-color:var(--gold);color:#3a2a05}
+
+  /* ---- 今日の1問 ---- */
+  .catbadge{display:inline-block;background:var(--stage);color:var(--gold-soft);
+    font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;letter-spacing:.08em}
+  .roundtag{color:var(--ink2);font-size:11px;margin-left:8px}
+  .quote{background:var(--paper2);border-left:4px solid var(--beni);border-radius:0 12px 12px 0;
+    padding:12px 14px;margin:14px 0;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    font-size:14.5px;color:#333;line-height:1.9}
+  .qtext{font-size:18px;font-weight:700;margin:6px 0 4px;line-height:1.55}
+  .segwrap{display:flex;background:var(--paper2);border-radius:12px;padding:4px;margin:14px 0 10px;gap:4px}
+  .seg{flex:1;border:none;background:none;padding:9px 0;border-radius:9px;font-size:13px;
+    font-weight:700;color:var(--ink2);cursor:pointer}
+  .seg.on{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  textarea{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:13px;
+    font-size:16px;font-family:inherit;resize:vertical;min-height:96px;color:var(--ink);background:#fff}
+  textarea:focus{outline:none;border-color:var(--beni)}
+  .choicebtn{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:#fff;
+    border-radius:14px;padding:14px;margin:9px 0;font-size:15.5px;cursor:pointer;font-weight:600;color:var(--ink)}
+  .choicebtn.sel{border-color:var(--beni);background:#fdeee9}
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;
+    font-weight:700;cursor:pointer}
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:var(--beni);color:#fff}
+  .btn.gold{background:var(--gold);color:#3a2a05}
+  .btn.ghost{background:var(--paper2);color:var(--ink2)}
+  .btn:disabled{opacity:.5}
+  .btnrow{display:flex;gap:8px;margin-top:10px}
+  .btnrow .btn{margin:0}
+  .voicebtn{width:100%;border:1.5px dashed var(--line);background:#fff;border-radius:14px;
+    padding:16px;font-size:15px;font-weight:700;color:var(--beni);cursor:pointer;margin-bottom:10px}
+  .voicebtn.rec{background:#fdecec;border-color:var(--beni);border-style:solid;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.6}}
+
+  /* ---- 採点/オチボーナス ---- */
+  .result{margin-top:16px}
+  .stars{font-size:38px;text-align:center;margin:4px 0}
+  .scoreline{text-align:center;font-size:14px;color:var(--ink2);margin-bottom:8px}
+  .scorenum{font-size:30px;font-weight:800;color:var(--beni)}
+  .praise{background:#fdf3e2;border-radius:14px;padding:14px;font-size:15px;font-weight:600;color:#6b4e12}
+  .fb{background:var(--paper2);border-radius:14px;padding:14px;font-size:14.5px;margin-top:10px;line-height:1.8}
+  .deeper{border:1px dashed var(--beni);border-radius:14px;padding:12px 14px;margin-top:10px;
+    font-size:14px;color:var(--beni-deep);background:#fff}
+  .deeper b{display:block;font-size:11px;letter-spacing:.1em;margin-bottom:3px}
+  .ochiCard{border:2px dashed var(--gold);border-radius:16px;padding:16px;margin-top:14px;background:#fffbf0}
+  .ochiCard h4{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.05em}
+  .zabuton-reward{text-align:center;padding:10px 0;font-size:14px;color:var(--gold);font-weight:700}
+
+  /* ---- 成長 ---- */
+  .stat{display:flex;gap:10px;margin-bottom:14px}
+  .statbox{flex:1;background:var(--stage);border-radius:16px;padding:14px;text-align:center;color:#fff}
+  .statbox .n{font-size:26px;font-weight:800;color:var(--gold-soft);font-family:"Hiragino Mincho ProN",serif}
+  .statbox .l{font-size:11px;color:#cbb99a;margin-top:2px}
+  .caldots{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .dot{width:13px;height:13px;border-radius:3px;background:var(--paper2)}
+  .dot.hit{background:var(--beni)}
+  #radar{display:block;margin:0 auto}
+  .reward{background:linear-gradient(135deg,#fff3d6,#ffe6c2);border-radius:16px;padding:16px;
+    text-align:center;margin-top:12px;border:1px solid #f0d9a8}
+  .reward .lock{font-size:30px}
+  .reward b{display:block;font-size:16px;color:#8a5a12;margin-top:4px}
+  .reward small{color:#a07530;font-size:12.5px}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;
+    background:#2b2019;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;
+    opacity:0;transition:opacity .3s;max-width:88%;text-align:center}
+  .toast.show{opacity:1}
+  .spin{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .foot{color:#a4927a;font-size:10.5px;text-align:center;padding:14px 20px 24px;line-height:1.7}
+  a.link{color:var(--gold-soft);cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="fanbg"></div>
+
+  <!-- モード選択 -->
+  <div id="modeScreen" class="modewrap" style="display:none;position:relative;z-index:2">
+    <header style="padding-top:8px">
+      <div class="kicker">RAKUGO YOMITOKI</div>
+      <h1 class="mincho">らくご<br>よみときドリル</h1>
+      <div class="sub">寄席のはなしを、毎日ひとつずつ読み解く</div>
+    </header>
+    <div style="margin-top:20px">
+      <div class="modeq">どちらで はじめますか？</div>
+      <div class="modehint">あとから せってい で かえられます</div>
+      <button class="modebtn" onclick="setMode('kids')">
+        <span class="em">🎐</span>小学1・2年生
+        <small>ふりがな・音読つき。やさしいことばで、ほめながら</small>
+      </button>
+      <button class="modebtn" onclick="setMode('adult')">
+        <span class="em">🪭</span>大人の学び直し
+        <small>10点採点・講評・落語の味わいを深く</small>
+      </button>
+    </div>
+    <div class="foot">全5演目・伝承の古典落語をもとにした、オリジナルの語り下ろしです。</div>
+  </div>
+
+  <!-- ライブラリ(演目一覧) -->
+  <div id="libScreen" style="display:none;position:relative;z-index:2">
+    <header>
+      <div class="kicker">RAKUGO YOMITOKI</div>
+      <h1 class="mincho">らくご よみときドリル</h1>
+      <div class="sub" id="libSub">寄席のはなしを、毎日ひとつずつ</div>
+      <div class="zabuton-meter">🪑 座布団 <span id="zabTotal">0</span> 枚</div>
+    </header>
+    <main>
+      <div id="worksList"></div>
+      <div class="foot">
+        1演目＝7つの読み方×3周＝21問で次の演目が解放。<br>
+        滑稽噺には「オチ」のボーナス問題つき。<br>
+        <a class="link" onclick="location.href='yomitoki-drill.html'">『手袋を買いに』のドリルへ</a>
+        ・
+        <a class="link" onclick="changeMode()">モードを切り替える</a>
+      </div>
+    </main>
+  </div>
+
+  <!-- 演目詳細 -->
+  <div id="app" style="display:none;position:relative;z-index:2">
+    <header style="text-align:left;padding-left:20px">
+      <div class="backrow"><button class="backbtn" onclick="toLibrary()">← 演目一覧</button></div>
+      <div class="kicker" id="hdKicker">RAKUGO YOMITOKI</div>
+      <h1 class="mincho" id="hdTitle" style="font-size:24px">寿限無</h1>
+      <div class="sub" id="hdSub">よみとき<span id="hdMode"></span></div>
+    </header>
+
+    <main>
+      <div class="tabs">
+        <button class="tab on" data-p="Story" onclick="go('Story')">📖 本文</button>
+        <button class="tab" data-p="Quiz" onclick="go('Quiz')">✏️ 今日の1問</button>
+        <button class="tab" data-p="Grow" onclick="go('Grow')">🌱 成長</button>
+      </div>
+
+      <!-- 本文 -->
+      <div id="pageStory" class="page on">
+        <div class="card">
+          <div class="textmode">
+            <button class="tm" data-m="furi" onclick="setTextMode('furi')">漢字＋ふりがな</button>
+            <button class="tm" data-m="kanji" onclick="setTextMode('kanji')">漢字のみ</button>
+            <button class="tm" data-m="hira" onclick="setTextMode('hira')">ひらがな</button>
+          </div>
+          <div class="pillrow">
+            <span class="pill" id="ttsPill" onclick="toggleTTS()">🔊 音読</span>
+          </div>
+          <div class="story" id="storyBody"></div>
+        </div>
+      </div>
+
+      <!-- 今日の1問 -->
+      <div id="pageQuiz" class="page">
+        <div class="card" id="quizCard">
+          <div id="quizTop">
+            <span class="catbadge" id="catBadge">…</span>
+            <span class="roundtag" id="roundTag"></span>
+          </div>
+          <div id="quizLoading" style="text-align:center;padding:30px 10px;color:var(--ink2)">
+            <span class="spin"></span> 今日の問いを作っています…
+          </div>
+          <div id="quizContent" style="display:none">
+            <div class="quote" id="qQuote"></div>
+            <div class="qtext" id="qText"></div>
+            <div class="segwrap">
+              <button class="seg on" data-m="text" onclick="setAns('text')">✍️ かく</button>
+              <button class="seg" data-m="choice" onclick="setAns('choice')">✅ えらぶ</button>
+              <button class="seg" data-m="voice" onclick="setAns('voice')">🎤 はなす</button>
+            </div>
+            <div id="ansText"><textarea id="ta" placeholder="思ったことを 書いてみよう"></textarea></div>
+            <div id="ansChoice" style="display:none"></div>
+            <div id="ansVoice" style="display:none">
+              <button class="voicebtn" id="micBtn" onclick="toggleMic()">🎤 タップして はなす</button>
+              <textarea id="tav" placeholder="話した言葉が ここに出ます（直してもOK）"></textarea>
+            </div>
+            <button class="btn primary" id="submitBtn" onclick="grade()">こたえる</button>
+          </div>
+
+          <div class="result" id="result" style="display:none">
+            <div class="stars" id="rStars"></div>
+            <div class="scoreline" id="rScoreLine"></div>
+            <div class="praise" id="rPraise"></div>
+            <div class="fb" id="rFb"></div>
+            <div class="deeper" id="rDeeper" style="display:none"><b>さらに考えるなら</b><span id="rDeeperT"></span></div>
+            <div class="btnrow">
+              <button class="btn ghost" onclick="showModel()">お手本を見る</button>
+              <button class="btn primary" onclick="nextQuestion()">つぎの問いへ</button>
+            </div>
+            <div class="fb" id="rModel" style="display:none"></div>
+
+            <!-- オチボーナス(滑稽噺のみ) -->
+            <div class="ochiCard" id="ochiCard" style="display:none">
+              <h4>🪭 オチのひみつに挑戦（ボーナス）</h4>
+              <div id="ochiBody"></div>
+            </div>
+          </div>
+        </div>
+        <div class="foot">1周＝7つの読み方 × 3周＝21問で <b style="color:var(--gold-soft)">次の演目が解放</b></div>
+      </div>
+
+      <!-- 成長 -->
+      <div id="pageGrow" class="page">
+        <div class="card">
+          <div class="stat">
+            <div class="statbox"><div class="n" id="gStreak">0</div><div class="l">連続日数</div></div>
+            <div class="statbox"><div class="n" id="gTotal">0</div><div class="l">こたえた問い</div></div>
+            <div class="statbox"><div class="n" id="gZab">0</div><div class="l">座布団</div></div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:4px">この1か月</div>
+          <div class="caldots" id="calDots"></div>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px">読み方の力（7つの読み）</div>
+          <canvas id="radar" width="300" height="300"></canvas>
+        </div>
+        <div class="card tight"><div id="rewardBox"></div></div>
+        <div class="card tight">
+          <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px">記録の持ち出し</div>
+          <div class="btnrow">
+            <button class="btn ghost" onclick="doExport()">⬇︎ 書き出す</button>
+            <button class="btn ghost" onclick="document.getElementById('impf').click()">⬆︎ 読み込む</button>
+          </div>
+          <input type="file" id="impf" accept="application/json" style="display:none" onchange="doImport(event)">
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   らくご よみときドリル v1
+   手袋アプリ(yomitoki-drill.html)と同じ askAI 基盤を使用。
+   進捗・記録は完全に別集計(localStorageキーが別)。
+   ============================================================ */
+
+var AI_URL = "https://us-central1-kensetsu-nippo-842a2.cloudfunctions.net/askAI";
+var AI_KEY = "HeartsHouse2026Key";
+
+function extractGeminiText(d){
+  if(!d) return "";
+  return (d.data && d.data.candidates && d.data.candidates[0] &&
+          d.data.candidates[0].content && d.data.candidates[0].content.parts &&
+          d.data.candidates[0].content.parts[0] && d.data.candidates[0].content.parts[0].text)
+      || (d.data && d.data.text)
+      || (d.candidates && d.candidates[0] && d.candidates[0].content &&
+          d.candidates[0].content.parts && d.candidates[0].content.parts[0] &&
+          d.candidates[0].content.parts[0].text)
+      || d.text || "";
+}
+function askAI(prompt, schema, cb){
+  var body = { prompt: prompt, model: "gemini-2.5-flash" };
+  if(schema) body.responseSchema = schema;
+  var httpStatus=null;
+  fetch(AI_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "x-access-key":AI_KEY },
+    body: JSON.stringify(body)
+  }).then(function(r){ httpStatus=r.status; return r.text(); })
+    .then(function(raw){
+      var d;
+      try{ d=JSON.parse(raw); }
+      catch(e){ cb("HTTP "+httpStatus+"：サーバーの返事がJSONではありません → "+raw.slice(0,200), null); return; }
+      if(d && d.success===false){ cb("HTTP "+httpStatus+"："+(d.error||"AIエラー"), null); return; }
+      var t=extractGeminiText(d);
+      if(!t){ cb("HTTP "+httpStatus+"：AIから空の返事 → "+JSON.stringify(d).slice(0,200), null); return; }
+      cb(null, parseJson(t));
+    })
+    .catch(function(e){ cb("通信自体に失敗（"+e.message+"）", null); });
+}
+function parseJson(t){
+  var s=String(t).replace(/```json/gi,"").replace(/```/g,"").trim();
+  try{ return JSON.parse(s); }
+  catch(e){
+    var a=s.indexOf("{"), b=s.lastIndexOf("}");
+    if(a>=0 && b>a){ try{ return JSON.parse(s.slice(a,b+1)); }catch(e2){} }
+    return { _raw:s };
+  }
+}
+
+/* ============================================================
+   演目データ
+   ============================================================ */
+var WORKS = [
+  { id:"jugem", title:"寿限無", reading:"じゅげむ", genre:"kokkei",
+    paras: [
+    "むかし、ある<ruby>長屋<rt>ながや</rt></ruby>に<ruby>男<rt>おとこ</rt></ruby>の<ruby>子<rt>こ</rt></ruby>が<ruby>生<rt>う</rt></ruby>まれました。<ruby>父親<rt>ちちおや</rt></ruby>は、この<ruby>子<rt>こ</rt></ruby>が<ruby>長生<rt>ながい</rt></ruby>きして<ruby>幸<rt>しあわ</rt></ruby>せになれるような、めでたい<ruby>名前<rt>なまえ</rt></ruby>をつけてやりたいと<ruby>思<rt>おも</rt></ruby>いました。そこで<ruby>物知<rt>ものし</rt></ruby>りで<ruby>評判<rt>ひょうばん</rt></ruby>の、<ruby>お寺<rt>てら</rt></ruby>の<ruby>御隠居<rt>ごいんきょ</rt></ruby>さんのところへ、<ruby>相談<rt>そうだん</rt></ruby>に<ruby>行<rt>い</rt></ruby>くことにしました。",
+    "「うちの<ruby>子<rt>こ</rt></ruby>に、なにかめでたい<ruby>名前<rt>なまえ</rt></ruby>をつけてやりたいんです」<ruby>父親<rt>ちちおや</rt></ruby>がそう<ruby>言<rt>い</rt></ruby>うと、<ruby>御隠居<rt>ごいんきょ</rt></ruby>さんはひとつひとつ、めでたい<ruby>言葉<rt>ことば</rt></ruby>を<ruby>教<rt>おし</rt></ruby>えてくれました。「<ruby>寿限無<rt>じゅげむ</rt></ruby>というのはな、<ruby>命<rt>いのち</rt></ruby>に<ruby>限<rt>かぎ</rt></ruby>りが<ruby>無<rt>な</rt></ruby>い、いつまでも<ruby>生<rt>い</rt></ruby>きられるという<ruby>意味<rt>いみ</rt></ruby>じゃ」「<ruby>五劫<rt>ごこう</rt></ruby>の<ruby>擦<rt>す</rt></ruby>り<ruby>切<rt>き</rt></ruby>れというのはな、<ruby>天女<rt>てんにょ</rt></ruby>さまが<ruby>三千年<rt>さんぜんねん</rt></ruby>に<ruby>一度<rt>いちど</rt></ruby>、<ruby>羽衣<rt>はごろも</rt></ruby>で<ruby>大岩<rt>おおいわ</rt></ruby>をひと<ruby>撫<rt>な</rt></ruby>でしていって、その<ruby>岩<rt>いわ</rt></ruby>がすっかり<ruby>擦<rt>す</rt></ruby>り<ruby>切<rt>き</rt></ruby>れてしまうほどの、とほうもなく<ruby>長<rt>なが</rt></ruby>い<ruby>時間<rt>じかん</rt></ruby>のことじゃ」",
+    "「<ruby>海砂利水魚<rt>かいじゃりすいぎょ</rt></ruby>というのは、<ruby>海<rt>うみ</rt></ruby>の<ruby>砂利<rt>じゃり</rt></ruby>や<ruby>魚<rt>さかな</rt></ruby>のように、<ruby>数<rt>かず</rt></ruby>え<ruby>切<rt>き</rt></ruby>れないほど<ruby>豊<rt>ゆた</rt></ruby>かだということじゃ」「<ruby>水行末<rt>すいぎょうまつ</rt></ruby>・<ruby>雲来末<rt>うんらいまつ</rt></ruby>・<ruby>風来末<rt>ふうらいまつ</rt></ruby>というのは、<ruby>水<rt>みず</rt></ruby>や<ruby>雲<rt>くも</rt></ruby>や<ruby>風<rt>かぜ</rt></ruby>のように、いつまでも<ruby>絶<rt>た</rt></ruby>えることがないという<ruby>願<rt>ねが</rt></ruby>いじゃ」「<ruby>食<rt>く</rt></ruby>う<ruby>寝<rt>ね</rt></ruby>る<ruby>処<rt>ところ</rt></ruby>に<ruby>住<rt>す</rt></ruby>む<ruby>処<rt>ところ</rt></ruby>とは、<ruby>食<rt>た</rt></ruby>べるものにも<ruby>寝<rt>ね</rt></ruby>るところにも、けっして<ruby>困<rt>こま</rt></ruby>らないという<ruby>意味<rt>いみ</rt></ruby>じゃ」",
+    "「やぶらこうじの<ruby>藪柑子<rt>ぶらこうじ</rt></ruby>というのは、<ruby>冬<rt>ふゆ</rt></ruby>でも<ruby>葉<rt>は</rt></ruby>を<ruby>落<rt>お</rt></ruby>とさない、<ruby>長生<rt>ながい</rt></ruby>きの<ruby>木<rt>き</rt></ruby>の<ruby>名前<rt>なまえ</rt></ruby>じゃ」「パイポというのは、<ruby>大昔<rt>おおむかし</rt></ruby>にあったという、めでたい<ruby>国<rt>くに</rt></ruby>の<ruby>名前<rt>なまえ</rt></ruby>での。そこの<ruby>王様<rt>おうさま</rt></ruby>はシューリンガン、お<ruby>后<rt>きさき</rt></ruby>さまはグーリンダイといって、ふたりのあいだに<ruby>生<rt>う</rt></ruby>まれた<ruby>王子<rt>おうじ</rt></ruby>と<ruby>姫<rt>ひめ</rt></ruby>さまが、ポンポコピーにポンポコナー。みんな<ruby>長生<rt>ながい</rt></ruby>きしたそうじゃ」「<ruby>長久命<rt>ちょうきゅうめい</rt></ruby>の<ruby>長助<rt>ちょうすけ</rt></ruby>というのは、そのまま、<ruby>長<rt>なが</rt></ruby>く<ruby>久<rt>ひさ</rt></ruby>しく、<ruby>命<rt>いのち</rt></ruby>が<ruby>続<rt>つづ</rt></ruby>くようにという<ruby>願<rt>ねが</rt></ruby>いじゃ」",
+    "<ruby>父親<rt>ちちおや</rt></ruby>はすっかり<ruby>感心<rt>かんしん</rt></ruby>してしまいました。どれも<ruby>甲乙<rt>こうおつ</rt></ruby>つけがたい、めでたい<ruby>名前<rt>なまえ</rt></ruby>ばかりです。「うーん、どれも<ruby>捨<rt>す</rt></ruby>てがたい……よし、<ruby>全部<rt>ぜんぶ</rt></ruby><ruby>使<rt>つか</rt></ruby>ってしまおう」<ruby>父親<rt>ちちおや</rt></ruby>はそう<ruby>決<rt>き</rt></ruby>めて、<ruby>教<rt>おそ</rt></ruby>わった<ruby>言葉<rt>ことば</rt></ruby>をぜんぶつなげて、<ruby>息子<rt>むすこ</rt></ruby>の<ruby>名前<rt>なまえ</rt></ruby>にしてしまいました。「<ruby>寿限無<rt>じゅげむ</rt></ruby><ruby>寿限無<rt>じゅげむ</rt></ruby>、<ruby>五劫<rt>ごこう</rt></ruby>の<ruby>擦<rt>す</rt></ruby>り<ruby>切<rt>き</rt></ruby>れ、<ruby>海砂利水魚<rt>かいじゃりすいぎょ</rt></ruby>の、<ruby>水行末<rt>すいぎょうまつ</rt></ruby>・<ruby>雲来末<rt>うんらいまつ</rt></ruby>・<ruby>風来末<rt>ふうらいまつ</rt></ruby>、<ruby>食<rt>く</rt></ruby>う<ruby>寝<rt>ね</rt></ruby>る<ruby>処<rt>ところ</rt></ruby>に<ruby>住<rt>す</rt></ruby>む<ruby>処<rt>ところ</rt></ruby>、やぶらこうじの<ruby>藪柑子<rt>ぶらこうじ</rt></ruby>、パイポパイポ パイポの シューリンガン シューリンガンの グーリンダイ グーリンダイの ポンポコピーの ポンポコナーの <ruby>長久命<rt>ちょうきゅうめい</rt></ruby>の<ruby>長助<rt>ちょうすけ</rt></ruby>」",
+    "<ruby>役場<rt>やくば</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>はこの<ruby>名前<rt>なまえ</rt></ruby>を<ruby>紙<rt>かみ</rt></ruby>に<ruby>書<rt>か</rt></ruby>くだけで、すっかりくたびれてしまったということです。それから<ruby>年月<rt>としつき</rt></ruby>が<ruby>経<rt>た</rt></ruby>ち、<ruby>寿限無<rt>じゅげむ</rt></ruby>くんは<ruby>大<rt>おお</rt></ruby>きくなって、<ruby>近所<rt>きんじょ</rt></ruby>の<ruby>子供<rt>こども</rt></ruby>たちといっしょに<ruby>遊<rt>あそ</rt></ruby>ぶようになりました。",
+    "ある<ruby>日<rt>ひ</rt></ruby>、<ruby>寿限無<rt>じゅげむ</rt></ruby>くんが<ruby>友達<rt>ともだち</rt></ruby>と<ruby>相撲<rt>すもう</rt></ruby>をとって<ruby>遊<rt>あそ</rt></ruby>んでいたら、<ruby>友達<rt>ともだち</rt></ruby>の<ruby>一人<rt>ひとり</rt></ruby>が<ruby>頭<rt>あたま</rt></ruby>をぶつけて、たんこぶをこしらえてしまいました。その<ruby>子<rt>こ</rt></ruby>は<ruby>先生<rt>せんせい</rt></ruby>のところへ<ruby>泣<rt>な</rt></ruby>きながら<ruby>知<rt>し</rt></ruby>らせに<ruby>行<rt>い</rt></ruby>きました。「<ruby>先生<rt>せんせい</rt></ruby>、<ruby>寿限無<rt>じゅげむ</rt></ruby><ruby>寿限無<rt>じゅげむ</rt></ruby>、<ruby>五劫<rt>ごこう</rt></ruby>の<ruby>擦<rt>す</rt></ruby>り<ruby>切<rt>き</rt></ruby>れ……」と、はじめから<ruby>名前<rt>なまえ</rt></ruby>をぜんぶ<ruby>言<rt>い</rt></ruby>わなければ、いったい<ruby>誰<rt>だれ</rt></ruby>のことだか<ruby>先生<rt>せんせい</rt></ruby>にはわかりません。「……パイポパイポ パイポの シューリンガン……」<ruby>友達<rt>ともだち</rt></ruby>が<ruby>一生懸命<rt>いっしょうけんめい</rt></ruby>、<ruby>長<rt>なが</rt></ruby>い<ruby>名前<rt>なまえ</rt></ruby>を<ruby>言<rt>い</rt></ruby>い<ruby>終<rt>お</rt></ruby>わるころには、あんまり<ruby>時間<rt>じかん</rt></ruby>がかかったものですから、そのたんこぶは、すっかりひっこんでしまっていたということです。"
+    ]},
+  { id:"tokisoba", title:"時そば", reading:"ときそば", genre:"kokkei", comingSoon:true },
+  { id:"manjukowai", title:"饅頭こわい", reading:"まんじゅうこわい", genre:"kokkei", comingSoon:true },
+  { id:"kouyatakao", title:"紺屋高尾", reading:"こうやたかお", genre:"ninjo", comingSoon:true },
+  { id:"shibahama", title:"芝浜", reading:"しばはま", genre:"ninjo", comingSoon:true }
+];
+function findWork(id){ for(var i=0;i<WORKS.length;i++) if(WORKS[i].id===id) return WORKS[i]; return null; }
+function workIndex(id){ for(var i=0;i<WORKS.length;i++) if(WORKS[i].id===id) return i; return -1; }
+
+var CATEGORIES = [
+  { id:"fact",   name:"よみとる",   kids:"お話に書いてあることを、正しく見つける",
+    adult:"本文の記述を正確に拾う（誰が・何を・どこで・いつ）" },
+  { id:"word",   name:"ことば",     kids:"むずかしい言葉の意味を、お話から考える",
+    adult:"語句・表現・言葉遊びの効果を文脈から読む" },
+  { id:"heart",  name:"きもち",     kids:"登場人物の気持ちを、そのわけと一緒に考える",
+    adult:"心情とその変化を、本文の根拠とともに読む" },
+  { id:"reason", name:"わけ",       kids:"どうしてそうしたのか、りゆうを考える",
+    adult:"行動の因果・動機を、過去の経験と結びつけて読む" },
+  { id:"self",   name:"じぶんなら", kids:"もし自分だったらどうするか、自由に考える",
+    adult:"自分の価値観に引きつけて判断し、理由を述べる" },
+  { id:"view",   name:"べつの目",   kids:"ほかの登場人物から見たら、どう見えるか",
+    adult:"別の視点人物に立って場面を語り直す（視点の混入に注意）" },
+  { id:"theme",  name:"いちばん",   kids:"このお話でいちばん心にのこったところは？",
+    adult:"主題を、本文の根拠と自分の解釈の掛け算で読む" }
+];
+
+/* ============================================================
+   状態管理(手袋アプリとは完全に別のlocalStorageキー)
+   ============================================================ */
+var LS = "rakugo_v1";
+var state = load();
+function load(){
+  try{ var raw=localStorage.getItem(LS); if(raw) return JSON.parse(raw); }catch(e){}
+  return { mode:null, textMode:null, unlocked:["jugem"], works:{}, records:[], zabuton:0 };
+}
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} }
+function workState(id){
+  if(!state.works[id]) state.works[id] = { progress:0, catScore:{}, ochiSeen:[] };
+  return state.works[id];
+}
+function todayStr(){
+  var d=new Date();
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+
+/* ============================================================
+   起動
+   ============================================================ */
+if(!state.mode){ document.getElementById("modeScreen").style.display="block"; }
+else { toLibrary(); }
+
+function setMode(m){
+  state.mode=m; if(!state.textMode) state.textMode=(m==="kids")?"furi":"kanji";
+  save(); toLibrary();
+}
+function changeMode(){
+  document.getElementById("libScreen").style.display="none";
+  document.getElementById("modeScreen").style.display="block";
+}
+
+/* ============================================================
+   ライブラリ画面
+   ============================================================ */
+function toLibrary(){
+  document.getElementById("modeScreen").style.display="none";
+  document.getElementById("app").style.display="none";
+  document.getElementById("libScreen").style.display="block";
+  renderLibrary();
+}
+function totalZabuton(){
+  var z = state.zabuton||0;
+  for(var id in state.works) z += (state.works[id].ochiSeen||[]).length;
+  return z;
+}
+function renderLibrary(){
+  document.getElementById("zabTotal").textContent = totalZabuton();
+  var html="";
+  for(var i=0;i<WORKS.length;i++){
+    var w=WORKS[i], unlocked = state.unlocked.indexOf(w.id)>=0;
+    var ws = state.works[w.id] || { progress:0 };
+    var done = ws.progress>=21;
+    var cls = "mekuri"+(!unlocked?" locked":"")+(done?" done":"");
+    var genreLabel = w.genre==="kokkei" ? "滑稽噺" : "人情噺";
+    html += '<div class="'+cls+'" onclick="'+(unlocked?"openWork('"+w.id+"')":"")+'">';
+    html += '<div class="mekuri-num">'+(i+1)+'</div>';
+    html += '<div class="mekuri-body">';
+    html += '<div class="mekuri-title mincho">'+(unlocked||w.comingSoon===undefined?w.title:"？？？")+'</div>';
+    if(unlocked) html += '<span class="genre-badge '+w.genre+'">'+genreLabel+'</span>';
+    if(unlocked && !w.comingSoon){
+      html += '<div class="mekuri-prog">'+(done?"かんせい！":"すすみぐあい：<b>"+ws.progress+"</b>／21")+'</div>';
+      html += '<div class="barbg"><div class="barfg" style="width:'+Math.min(100,ws.progress/21*100)+'%"></div></div>';
+    } else if(unlocked && w.comingSoon){
+      html += '<div class="mekuri-prog">近日公開のおはなし</div>';
+    } else {
+      html += '<div class="mekuri-prog">前の演目を極めると解放</div>';
+    }
+    html += '</div>';
+    html += unlocked ? (done?'<div class="mekuri-check">🏅</div>':'') : '<div class="mekuri-lock">🔒</div>';
+    html += '</div>';
+  }
+  document.getElementById("worksList").innerHTML = html;
+}
+
+var curWork=null;
+function openWork(id){
+  var w=findWork(id);
+  if(!w || w.comingSoon){ toast("この演目は近日公開です"); return; }
+  curWork=w;
+  document.getElementById("libScreen").style.display="none";
+  document.getElementById("app").style.display="block";
+  document.getElementById("hdTitle").textContent = w.title;
+  document.getElementById("hdMode").textContent = (state.mode==="kids") ? "（小学1・2年）" : "（大人）";
+  go("Story");
+  renderStory();
+  loadQuestion();
+  renderGrow();
+}
+
+/* ============================================================
+   本文(3モード表示 + ひらがな変換TTS)
+   ============================================================ */
+function rubyToKana(html){
+  var s = html.replace(/<ruby>[^<]*<rt>([^<]*)<\/rt><\/ruby>/g, "$1");
+  s = s.replace(/<rt>.*?<\/rt>/g, "");
+  s = s.replace(/<[^>]+>/g, "");
+  return s;
+}
+function renderStory(){
+  var w=curWork, body=document.getElementById("storyBody"), html="";
+  if(state.textMode==="hira"){
+    for(var i=0;i<w.paras.length;i++) html += "<p>"+rubyToKana(w.paras[i])+"</p>";
+  } else {
+    for(var j=0;j<w.paras.length;j++) html += "<p>"+w.paras[j]+"</p>";
+  }
+  body.innerHTML = html;
+  body.className = "story" + (state.textMode==="kanji" ? " nofuri" : "");
+  var tms=document.querySelectorAll(".tm");
+  for(var k=0;k<tms.length;k++) tms[k].className="tm"+(tms[k].getAttribute("data-m")===state.textMode?" on":"");
+}
+function setTextMode(m){ state.textMode=m; save(); renderStory(); }
+
+var ttsOn=false;
+function toggleTTS(){
+  if(!("speechSynthesis" in window)){ toast("この端末は音読に対応していません"); return; }
+  if(ttsOn){ window.speechSynthesis.cancel(); ttsOn=false; setTtsPill(); return; }
+  var text = curWork.paras.map(function(p){ return rubyToKana(p); }).join("。");
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang="ja-JP"; u.rate=(state.mode==="kids")?0.85:1.0;
+  u.onend=function(){ ttsOn=false; setTtsPill(); };
+  window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+  ttsOn=true; setTtsPill();
+}
+function setTtsPill(){
+  var p=document.getElementById("ttsPill");
+  p.className="pill"+(ttsOn?" act":""); p.textContent=ttsOn?"⏸ とめる":"🔊 音読";
+}
+
+/* ============================================================
+   今日の1問
+   ============================================================ */
+var curQ=null, ansMode="text", curChoice=-1, micRec=null, micOn=false;
+
+function curCategory(){ var ws=workState(curWork.id); return CATEGORIES[ws.progress % CATEGORIES.length]; }
+function curRound(){ var ws=workState(curWork.id); return Math.floor(ws.progress / CATEGORIES.length) + 1; }
+function plainStory(){ return curWork.paras.map(function(p){ return rubyToKana(p); }).join("\n"); }
+
+function loadQuestion(){
+  var ws=workState(curWork.id), cat=curCategory(), round=curRound();
+  document.getElementById("catBadge").textContent = "読み方："+cat.name;
+  document.getElementById("roundTag").textContent = round+"周目 ・ "+(ws.progress%7+1)+"／7";
+  document.getElementById("quizLoading").style.display="block";
+  document.getElementById("quizContent").style.display="none";
+  document.getElementById("result").style.display="none";
+  document.getElementById("ochiCard").style.display="none";
+
+  var scenes = usedScenes(cat.id);
+  var half = round===1 ? "はなしの前半" : round===2 ? "はなしの後半" : "はなし全体を横断して";
+  var levelInstr = state.mode==="kids"
+     ? "対象は小学1〜2年生。問いは50字以内、やさしい平易な言葉で。難しい漢字は避け、1つのことだけ問う。"
+     : "対象は大人の学び直し。細部や解釈の余地を含む、思考を促す問いにする。";
+  var choiceInstr = ansMode==="choice"
+     ? 'この問いは選択式。"choices" に4つの選択肢を入れる（1つが最も適切、他は紛らわしいが本文と照らせば区別できる）。'
+     : '"choices" は空配列。';
+  var genreNote = curWork.genre==="kokkei"
+     ? "この演目は滑稽噺（笑いの落語）。オチ自体はこの問いでは扱わず、それ以外の読解に集中すること。"
+     : "この演目は人情噺（しみじみとした落語）。心情や人間関係の機微を大切に。";
+
+  var prompt =
+    "あなたは古典落語『"+curWork.title+"』を教材にした読解ドリルの出題者です。\n"+
+    "以下の本文だけを根拠に、「"+cat.name+"（"+(state.mode==="kids"?cat.kids:cat.adult)+"）」を鍛える問いを1つ作ってください。\n"+
+    "出題範囲："+half+"。"+genreNote+"\n"+
+    levelInstr+"\n"+choiceInstr+"\n"+
+    "問いには、根拠となる本文の一節（1〜2行）を必ず引用として添えること。\n"+
+    (scenes.length? "次の場面はすでに出題済みなので避ける："+scenes.join(" / ")+"\n" : "")+
+    "JSONのみで返す（前後に説明やコードフェンス不要）。\n\n"+
+    "【本文】\n"+ plainStory();
+
+  var schema = {
+    type:"OBJECT",
+    properties:{
+      scene:{type:"STRING"}, quote:{type:"STRING"}, question:{type:"STRING"},
+      choices:{type:"ARRAY", items:{type:"STRING"}}
+    },
+    required:["scene","quote","question"]
+  };
+
+  askAI(prompt, schema, function(err,d){
+    if(err || !d || !d.question){ showRetry(err,d); return; }
+    curQ=d; curChoice=-1;
+    document.getElementById("qQuote").textContent = "「"+(d.quote||"")+"」";
+    document.getElementById("qText").textContent = d.question;
+    document.getElementById("ta").value=""; document.getElementById("tav").value="";
+    renderAnsArea();
+    document.getElementById("quizLoading").style.display="none";
+    document.getElementById("quizContent").style.display="block";
+  });
+}
+function showRetry(err,d){
+  var detail = err ? String(err) : "問いの生成に失敗しました";
+  document.getElementById("quizLoading").innerHTML =
+    '<div style="color:var(--beni);margin-bottom:6px;font-weight:700">うまくいきませんでした</div>'+
+    '<div style="font-size:11.5px;color:#8a7c68;background:var(--paper2);border-radius:8px;padding:8px;margin:8px 0;word-break:break-all;text-align:left">'+esc(detail)+'</div>'+
+    '<button class="btn primary" onclick="loadQuestion()">もう一度ためす</button>';
+}
+function esc(s){ return String(s).replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function usedScenes(catId){
+  var out=[], recs=state.records;
+  for(var i=0;i<recs.length;i++) if(recs[i].workId===curWork.id && recs[i].cat===catId && recs[i].scene) out.push(recs[i].scene);
+  return out.slice(-6);
+}
+
+function setAns(m){
+  ansMode=m; curChoice=-1;
+  var segs=document.querySelectorAll(".seg");
+  for(var i=0;i<segs.length;i++) segs[i].className="seg"+(segs[i].getAttribute("data-m")===m?" on":"");
+  if(m==="choice" && curQ && (!curQ.choices || !curQ.choices.length)){ loadQuestion(); return; }
+  renderAnsArea();
+}
+function renderAnsArea(){
+  document.getElementById("ansText").style.display   = ansMode==="text"  ?"block":"none";
+  document.getElementById("ansChoice").style.display = ansMode==="choice"?"block":"none";
+  document.getElementById("ansVoice").style.display  = ansMode==="voice" ?"block":"none";
+  if(ansMode==="choice" && curQ && curQ.choices){
+    var h="";
+    for(var i=0;i<curQ.choices.length;i++)
+      h+='<button class="choicebtn" data-i="'+i+'" onclick="pickChoice('+i+')">'+curQ.choices[i]+'</button>';
+    document.getElementById("ansChoice").innerHTML=h;
+  }
+}
+function pickChoice(i){
+  curChoice=i;
+  var bs=document.querySelectorAll("#ansChoice .choicebtn");
+  for(var k=0;k<bs.length;k++) bs[k].className="choicebtn"+(k===i?" sel":"");
+}
+function toggleMic(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast("この端末は音声入力に対応していません"); return; }
+  if(micOn){ if(micRec) micRec.stop(); return; }
+  micRec=new SR(); micRec.lang="ja-JP"; micRec.interimResults=true; micRec.continuous=false;
+  var box=document.getElementById("tav");
+  micRec.onresult=function(e){ var t=""; for(var i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; box.value=t; };
+  micRec.onend=function(){ micOn=false; setMicBtn(); };
+  micRec.onerror=function(){ micOn=false; setMicBtn(); };
+  micRec.start(); micOn=true; setMicBtn();
+}
+function setMicBtn(){
+  var b=document.getElementById("micBtn");
+  b.className="voicebtn"+(micOn?" rec":"");
+  b.textContent=micOn?"● 聞いています…（もう一度タップで停止）":"🎤 タップして はなす";
+}
+
+/* 採点 */
+function grade(){
+  var answer="";
+  if(ansMode==="text")  answer=document.getElementById("ta").value.trim();
+  if(ansMode==="voice") answer=document.getElementById("tav").value.trim();
+  if(ansMode==="choice"){ if(curChoice<0){ toast("こたえを えらんでね"); return; } answer=curQ.choices[curChoice]; }
+  if(!answer){ toast("こたえを 入力してね"); return; }
+
+  var btn=document.getElementById("submitBtn");
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> 採点中…';
+
+  var cat=curCategory();
+  var levelInstr = state.mode==="kids"
+    ? "相手は小学1〜2年生。まず必ずほめる。やさしい言葉で。stars は ◎○△のどれか。score は0〜10。feedback は40字以内でやさしく。self系の問いには正解を求めず、考えを認めて一歩深い問いを返す。"
+    : "相手は大人。score は0〜10で厳しめでよい。feedback は講評として具体的に。praise は良かった点。deeper に『さらに考えるなら』の追い問いを1つ入れる。";
+
+  var prompt =
+    "あなたは古典落語『"+curWork.title+"』の読解を指導する先生です。次の回答を採点してください。\n"+
+    "観点：「"+cat.name+"」。"+(cat.id==="self"||cat.id==="theme"?"この問いに唯一の正解はない。自分の考え＋理由があれば高評価。":"本文に根拠があるかを重視する。")+"\n"+
+    levelInstr+"\n"+
+    "model には、模範的な答えの一例を1〜2文で示す（本文の根拠を含める）。\n"+
+    "JSONのみで返す。\n\n"+
+    "【問い】"+curQ.question+"\n【本文の該当箇所】"+(curQ.quote||"")+"\n【回答】"+answer+"\n\n【本文全体】\n"+plainStory();
+
+  var schema = {
+    type:"OBJECT",
+    properties:{ score:{type:"INTEGER"}, stars:{type:"STRING"}, praise:{type:"STRING"},
+      feedback:{type:"STRING"}, deeper:{type:"STRING"}, model:{type:"STRING"} },
+    required:["score","praise","feedback","model"]
+  };
+
+  askAI(prompt, schema, function(err,d){
+    btn.disabled=false; btn.textContent="こたえる";
+    if(err || !d){ toast(err||"採点に失敗しました"); return; }
+    showResult(d, cat);
+    recordAnswer(cat, d);
+  });
+}
+function showResult(d, cat){
+  document.getElementById("quizContent").style.display="none";
+  var res=document.getElementById("result"); res.style.display="block";
+  var score = typeof d.score==="number" ? d.score : parseInt(d.score||0,10);
+  if(state.mode==="kids"){
+    var st = d.stars || (score>=8?"◎":score>=5?"○":"△");
+    document.getElementById("rStars").textContent = st==="◎"?"◎ 🌟":st==="○"?"○ ✨":"△ 💪";
+    document.getElementById("rScoreLine").textContent = st==="◎"?"よくできました！":st==="○"?"いいね！":"あと少し！";
+  }else{
+    document.getElementById("rStars").innerHTML='<span class="scorenum">'+score+'</span> <span style="font-size:16px;color:#999">/ 10</span>';
+    document.getElementById("rScoreLine").textContent = "読み方："+cat.name;
+  }
+  document.getElementById("rPraise").textContent = d.praise||"";
+  document.getElementById("rFb").textContent = d.feedback||"";
+  var dp=document.getElementById("rDeeper");
+  if(d.deeper && state.mode==="adult"){ dp.style.display="block"; document.getElementById("rDeeperT").textContent=d.deeper; }
+  else dp.style.display="none";
+  var mb=document.getElementById("rModel"); mb.style.display="none"; mb.setAttribute("data-model", d.model||"");
+
+  if(curWork.genre==="kokkei") showOchiBonus();
+  else document.getElementById("ochiCard").style.display="none";
+}
+function showModel(){
+  var mb=document.getElementById("rModel");
+  mb.innerHTML="<b style='color:var(--beni)'>お手本：</b>"+(mb.getAttribute("data-model")||"お手本はありません");
+  mb.style.display="block";
+}
+function recordAnswer(cat, d){
+  var score = typeof d.score==="number" ? d.score : parseInt(d.score||0,10);
+  var ws=workState(curWork.id);
+  state.records.push({ date:todayStr(), workId:curWork.id, cat:cat.id, scene:curQ.scene||"", score:score });
+  if(!ws.catScore[cat.id]) ws.catScore[cat.id]={sum:0,n:0};
+  ws.catScore[cat.id].sum += score; ws.catScore[cat.id].n += 1;
+  var before=ws.progress;
+  ws.progress += 1;
+  save();
+  if(before<21 && ws.progress>=21){
+    var idx=workIndex(curWork.id), next=WORKS[idx+1];
+    if(next && state.unlocked.indexOf(next.id)<0){
+      state.unlocked.push(next.id); save();
+      setTimeout(function(){ toast("🎉 21問クリア！次の演目が解放されました"); },400);
+    }
+  }
+  renderGrow();
+}
+function nextQuestion(){ curChoice=-1; loadQuestion(); }
+
+/* ---- オチボーナス(滑稽噺のみ) ---- */
+function showOchiBonus(){
+  var card=document.getElementById("ochiCard");
+  card.style.display="block";
+  var body=document.getElementById("ochiBody");
+  body.innerHTML = '<button class="btn gold" onclick="loadOchi()">オチのひみつを考える</button>';
+}
+function loadOchi(){
+  var body=document.getElementById("ochiBody");
+  body.innerHTML = '<div style="text-align:center;padding:14px;color:var(--ink2)"><span class="spin"></span> オチの問いを作成中…</div>';
+  var levelInstr = state.mode==="kids"
+    ? "対象は小学1〜2年生。オチのおもしろさの仕組みを、やさしい言葉で問う。40字以内。"
+    : "対象は大人。オチの言葉遊び・構造的な仕組みを、掘り下げて問う。";
+  var prompt =
+    "落語『"+curWork.title+"』のオチ（サゲ）の面白さの仕組みについて、考えさせる問いを1つ作ってください。\n"+
+    levelInstr+"\n本文の該当部分を1〜2行、引用として添えること。JSONのみで返す。\n\n【本文】\n"+plainStory();
+  var schema = { type:"OBJECT", properties:{ quote:{type:"STRING"}, question:{type:"STRING"} }, required:["quote","question"] };
+  askAI(prompt, schema, function(err,d){
+    if(err || !d || !d.question){ body.innerHTML='<div style="color:var(--beni);font-size:13px">オチの問い作成に失敗しました</div>'; return; }
+    body.innerHTML =
+      '<div class="quote">「'+(d.quote||"")+'」</div>'+
+      '<div class="qtext" style="font-size:15.5px">'+d.question+'</div>'+
+      '<textarea id="ochiTa" placeholder="オチの面白さを説明してみよう" style="margin-top:8px"></textarea>'+
+      '<button class="btn gold" style="margin-top:8px" onclick="gradeOchi('+JSON.stringify(d.question)+','+JSON.stringify(d.quote||"")+')">こたえる</button>';
+  });
+}
+function gradeOchi(question, quote){
+  var ans = document.getElementById("ochiTa").value.trim();
+  if(!ans){ toast("こたえを入力してね"); return; }
+  var body=document.getElementById("ochiBody");
+  body.innerHTML = '<div style="text-align:center;padding:14px;color:var(--ink2)"><span class="spin"></span> 採点中…</div>';
+  var levelInstr = state.mode==="kids" ? "小学1〜2年生向けにやさしくほめる。" : "大人向けに講評する。";
+  var prompt =
+    "落語『"+curWork.title+"』のオチについての問いに対する回答を採点してください。\n"+
+    levelInstr+"\n短く一言講評（feedback、60字以内）と、称賛（praise、30字以内）を返す。JSONのみ。\n\n"+
+    "【問い】"+question+"\n【本文該当】"+quote+"\n【回答】"+ans;
+  var schema = { type:"OBJECT", properties:{ praise:{type:"STRING"}, feedback:{type:"STRING"} }, required:["praise","feedback"] };
+  askAI(prompt, schema, function(err,d){
+    if(err || !d){ body.innerHTML='<div style="color:var(--beni);font-size:13px">採点に失敗しました</div>'; return; }
+    var ws=workState(curWork.id);
+    ws.ochiSeen.push(todayStr()+":"+curQ.scene);
+    save();
+    body.innerHTML =
+      '<div class="praise">'+(d.praise||"")+'</div>'+
+      '<div class="fb">'+(d.feedback||"")+'</div>'+
+      '<div class="zabuton-reward">🪑 座布団が1枚増えました！（合計 '+totalZabuton()+' 枚）</div>';
+    renderGrow();
+  });
+}
+
+/* ============================================================
+   成長タブ
+   ============================================================ */
+function renderGrow(){
+  var ws=workState(curWork.id);
+  var recs = state.records.filter(function(r){ return r.workId===curWork.id; });
+  document.getElementById("gTotal").textContent = recs.length;
+  document.getElementById("gStreak").textContent = calcStreak();
+  document.getElementById("gZab").textContent = (ws.ochiSeen||[]).length;
+
+  var days={}, i;
+  var allRecs = state.records;
+  for(i=0;i<allRecs.length;i++) days[allRecs[i].date]=true;
+  var dots="", d=new Date();
+  for(i=34;i>=0;i--){
+    var dd=new Date(d.getTime()-i*86400000);
+    var s=dd.getFullYear()+"-"+("0"+(dd.getMonth()+1)).slice(-2)+"-"+("0"+dd.getDate()).slice(-2);
+    dots+='<div class="dot'+(days[s]?" hit":"")+'"></div>';
+  }
+  document.getElementById("calDots").innerHTML=dots;
+
+  drawRadar(ws);
+  renderReward(ws);
+}
+function calcStreak(){
+  var days={}; for(var i=0;i<state.records.length;i++) days[state.records[i].date]=true;
+  var n=0, d=new Date();
+  for(;;){
+    var s=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+    if(days[s]){ n++; d=new Date(d.getTime()-86400000); }
+    else if(n===0){ d=new Date(d.getTime()-86400000);
+      var s2=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+      if(days[s2]){ continue; } else break;
+    } else break;
+  }
+  return n;
+}
+function drawRadar(ws){
+  var cv=document.getElementById("radar"), ctx=cv.getContext("2d");
+  var W=cv.width, H=cv.height, cx=W/2, cy=H/2, R=110, N=CATEGORIES.length;
+  ctx.clearRect(0,0,W,H);
+  var i,ang,x,y,lv;
+  ctx.strokeStyle="#e0d0b8"; ctx.fillStyle="#8a7c68"; ctx.font="11px sans-serif";
+  for(lv=1;lv<=4;lv++){
+    ctx.beginPath();
+    for(i=0;i<=N;i++){ ang=-Math.PI/2+(i%N)*2*Math.PI/N; x=cx+Math.cos(ang)*R*lv/4; y=cy+Math.sin(ang)*R*lv/4;
+      if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke();
+  }
+  for(i=0;i<N;i++){
+    ang=-Math.PI/2+i*2*Math.PI/N; x=cx+Math.cos(ang)*(R+18); y=cy+Math.sin(ang)*(R+14);
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(CATEGORIES[i].name, x, y);
+  }
+  ctx.beginPath();
+  for(i=0;i<=N;i++){
+    var c=CATEGORIES[i%N], cs=ws.catScore[c.id];
+    var val = cs && cs.n ? (cs.sum/cs.n)/10 : 0;
+    ang=-Math.PI/2+(i%N)*2*Math.PI/N; x=cx+Math.cos(ang)*R*val; y=cy+Math.sin(ang)*R*val;
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle="rgba(156,61,46,.28)"; ctx.fill();
+  ctx.strokeStyle="#9c3d2e"; ctx.lineWidth=2; ctx.stroke();
+}
+function renderReward(ws){
+  var box=document.getElementById("rewardBox");
+  var idx=workIndex(curWork.id), next=WORKS[idx+1];
+  if(ws.progress>=21){
+    box.innerHTML='<div class="reward"><div class="lock">🏅</div><b>この演目は極めました</b>'+
+      (next?'<small>『'+next.title+'』が解放されています。ライブラリから開けます</small>':'<small>全演目コンプリート！</small>')+'</div>';
+  }else{
+    var left=21-ws.progress;
+    box.innerHTML='<div class="reward"><div class="lock">🔒</div><b>あと '+left+' 問で次の演目へ</b>'+
+      '<small>7つの読み方 × 3周＝21問で解放されます</small></div>';
+  }
+}
+
+/* エクスポート / インポート */
+function doExport(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download="rakugo-kiroku-"+todayStr()+".json"; a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  toast("記録を書き出しました");
+}
+function doImport(e){
+  var f=e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var obj=JSON.parse(r.result);
+      if(obj && obj.works){ state=obj; save(); renderGrow(); renderLibrary(); toast("記録を読み込みました"); }
+      else toast("形式が正しくありません");
+    }catch(err){ toast("読み込みに失敗しました"); }
+  };
+  r.readAsText(f); e.target.value="";
+}
+
+/* ============================================================
+   タブ切替 / トースト
+   ============================================================ */
+function go(p){
+  var pages=["Story","Quiz","Grow"], i;
+  for(i=0;i<pages.length;i++) document.getElementById("page"+pages[i]).className="page"+(pages[i]===p?" on":"");
+  var tabs=document.querySelectorAll(".tab");
+  for(i=0;i<tabs.length;i++) tabs[i].className="tab"+(tabs[i].getAttribute("data-p")===p?" on":"");
+  if(p==="Grow") renderGrow();
+  if(p!=="Story" && ttsOn){ window.speechSynthesis.cancel(); ttsOn=false; setTtsPill(); }
+}
+var toastT;
+function toast(msg){
+  var t=document.getElementById("toast"); t.textContent=msg; t.className="toast show";
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.className="toast"; },2600);
+}
+</script>
+</body>
+</html>
